@@ -26,17 +26,135 @@ interface FirecrawlSearchResult {
 }
 
 /**
- * Check whether the currently selected self-host search provider has an API key configured.
+ * Check whether the currently selected web search provider is configured.
+ * DuckDuckGo needs nothing (works out of the box); SearXNG needs a base URL;
+ * the hosted providers need an API key.
  */
 export function hasSelfHostSearchKey(): boolean {
   const settings = getSettings();
   switch (settings.selfHostSearchProvider) {
+    case "duckduckgo":
+      return true;
+    case "searxng":
+      return !!settings.searxngUrl?.trim();
     case "perplexity":
       return !!settings.perplexityApiKey;
     case "firecrawl":
     default:
       return !!settings.firecrawlApiKey;
   }
+}
+
+/**
+ * Resolve a DuckDuckGo result href to the real destination URL. DuckDuckGo wraps
+ * outbound links as `//duckduckgo.com/l/?uddg=<encoded-url>`; unwrap when present.
+ */
+function decodeDuckDuckGoUrl(href: string): string {
+  if (!href) return "";
+  try {
+    const url = new URL(href.startsWith("//") ? `https:${href}` : href, "https://duckduckgo.com");
+    const target = url.searchParams.get("uddg");
+    return target ? decodeURIComponent(target) : url.toString();
+  } catch {
+    return href;
+  }
+}
+
+/**
+ * Web search via DuckDuckGo's no-JavaScript HTML endpoint. Requires no API key
+ * and no self-hosting, so web search works out of the box. This scrapes the
+ * public HTML results page (an unofficial interface that may rate-limit or
+ * change), parsing titles, snippets, and links from the top results.
+ */
+async function duckDuckGoSearch(query: string): Promise<SelfHostWebSearchResult> {
+  const startTime = Date.now();
+  const params = new URLSearchParams({ q: query, kl: "wt-wt" });
+
+  const response = await safeFetchNoThrow(
+    `https://html.duckduckgo.com/html/?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        // A desktop UA avoids being served an empty/blocked page.
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`DuckDuckGo search failed (${response.status}): ${text.slice(0, 200)}`);
+  }
+
+  const html = await response.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const links = Array.from(doc.querySelectorAll("a.result__a")).slice(0, 5);
+
+  const contentParts: string[] = [];
+  const citations: string[] = [];
+  for (const link of links) {
+    const title = link.textContent?.trim() || "Untitled";
+    const url = decodeDuckDuckGoUrl(link.getAttribute("href") || "");
+    const container = link.closest(".result") ?? link.parentElement;
+    const snippet = container?.querySelector(".result__snippet")?.textContent?.trim() || "";
+    contentParts.push(`### ${title}\n${snippet}\nSource: ${url}`);
+    if (url) {
+      citations.push(url);
+    }
+  }
+
+  const elapsed = Date.now() - startTime;
+  logInfo(`[selfHostWebSearch] DuckDuckGo: ${links.length} results in ${elapsed}ms`);
+
+  return { content: contentParts.join("\n\n"), citations };
+}
+
+/**
+ * Web search via a self-hosted SearXNG instance (self-host mode). Uses SearXNG's
+ * JSON API (`/search?format=json`), so no API key is required — only the base URL
+ * of an instance the user controls. The instance must allow the JSON format.
+ */
+async function searxngSearch(query: string, baseUrl: string): Promise<SelfHostWebSearchResult> {
+  const startTime = Date.now();
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    throw new Error("SearXNG URL is not configured. Set it in Copilot settings.");
+  }
+
+  const params = new URLSearchParams({ q: query, format: "json" });
+  const response = await safeFetchNoThrow(`${trimmed}/search?${params.toString()}`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`SearXNG search failed (${response.status}): ${text}`);
+  }
+
+  const json = (await response.json()) as {
+    results?: Array<{ title?: string; content?: string; url?: string }>;
+  };
+  const results = Array.isArray(json?.results) ? json.results.slice(0, 5) : [];
+
+  const contentParts: string[] = [];
+  const citations: string[] = [];
+  for (const item of results) {
+    const title = item.title || "Untitled";
+    const description = item.content || "";
+    const url = item.url || "";
+    contentParts.push(`### ${title}\n${description}\nSource: ${url}`);
+    if (url) {
+      citations.push(url);
+    }
+  }
+
+  const elapsed = Date.now() - startTime;
+  logInfo(`[selfHostWebSearch] SearXNG: ${results.length} results in ${elapsed}ms`);
+
+  return { content: contentParts.join("\n\n"), citations };
 }
 
 /**
@@ -132,6 +250,10 @@ async function perplexitySonarSearch(
 export async function selfHostWebSearch(query: string): Promise<SelfHostWebSearchResult> {
   const settings = getSettings();
   switch (settings.selfHostSearchProvider) {
+    case "duckduckgo":
+      return duckDuckGoSearch(query);
+    case "searxng":
+      return searxngSearch(query, settings.searxngUrl);
     case "perplexity":
       return perplexitySonarSearch(query, await getDecryptedKey(settings.perplexityApiKey));
     case "firecrawl":

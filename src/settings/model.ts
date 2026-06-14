@@ -137,8 +137,10 @@ export interface CopilotSettings {
   selfHostApiKey: string;
   /** Custom Miyo server URL, e.g. "http://192.168.1.10:8742" (empty = use local service discovery) */
   miyoServerUrl: string;
-  /** Which provider to use for self-host web search */
-  selfHostSearchProvider: "firecrawl" | "perplexity";
+  /** Which provider to use for web search */
+  selfHostSearchProvider: "duckduckgo" | "firecrawl" | "perplexity" | "searxng";
+  /** Base URL of a self-hosted SearXNG instance for web search (no API key needed) */
+  searxngUrl: string;
   /** Firecrawl API key for self-host web search */
   firecrawlApiKey: string;
   /** Perplexity API key for self-host web search via Sonar */
@@ -162,14 +164,6 @@ export interface CopilotSettings {
   reasoningEffort: "minimal" | "low" | "medium" | "high";
   /** Default verbosity level for models that support it */
   verbosity: "low" | "medium" | "high";
-  /** Folder where memory data is stored */
-  memoryFolderName: string;
-  /** Reference recent conversation history to provide more contextually relevant responses */
-  enableRecentConversations: boolean;
-  /** Maximum number of recent conversations to remember (10-50) */
-  maxRecentConversations: number;
-  /** Reference saved memories that user explicitly asked to remember */
-  enableSavedMemory: boolean;
   /** Automatically extract durable personal facts from conversations into the Memory folder */
   enableAutoMemory: boolean;
   /** Vault folder where automatically created memory notes are stored */
@@ -481,9 +475,14 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
   }
 
   // Ensure selfHostSearchProvider is a valid value
-  const validSearchProviders = ["firecrawl", "perplexity"] as const;
+  const validSearchProviders = ["duckduckgo", "firecrawl", "perplexity", "searxng"] as const;
   if (!validSearchProviders.includes(sanitizedSettings.selfHostSearchProvider)) {
     sanitizedSettings.selfHostSearchProvider = DEFAULT_SETTINGS.selfHostSearchProvider;
+  }
+
+  // Ensure searxngUrl is a string
+  if (typeof sanitizedSettings.searxngUrl !== "string") {
+    sanitizedSettings.searxngUrl = DEFAULT_SETTINGS.searxngUrl;
   }
 
   // Ensure passMarkdownImages has a default value
@@ -527,24 +526,6 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
   sanitizedSettings.autonomousAgentEnabledToolIds =
     sanitizedSettings.autonomousAgentEnabledToolIds.map((id) => toolIdRenames[id] ?? id);
 
-  // Ensure memoryFolderName has a default value
-  if (
-    !sanitizedSettings.memoryFolderName ||
-    typeof sanitizedSettings.memoryFolderName !== "string"
-  ) {
-    sanitizedSettings.memoryFolderName = DEFAULT_SETTINGS.memoryFolderName;
-  }
-
-  // Ensure enableRecentConversations has a default value
-  if (typeof sanitizedSettings.enableRecentConversations !== "boolean") {
-    sanitizedSettings.enableRecentConversations = DEFAULT_SETTINGS.enableRecentConversations;
-  }
-
-  // Ensure enableSavedMemory has a default value
-  if (typeof sanitizedSettings.enableSavedMemory !== "boolean") {
-    sanitizedSettings.enableSavedMemory = DEFAULT_SETTINGS.enableSavedMemory;
-  }
-
   // Ensure automatic knowledge (memory + skills) settings have valid values
   if (typeof sanitizedSettings.enableAutoMemory !== "boolean") {
     sanitizedSettings.enableAutoMemory = DEFAULT_SETTINGS.enableAutoMemory;
@@ -560,14 +541,6 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
   }
   if (!sanitizedSettings.skillsFolder || typeof sanitizedSettings.skillsFolder !== "string") {
     sanitizedSettings.skillsFolder = DEFAULT_SETTINGS.skillsFolder;
-  }
-
-  // Ensure maxRecentConversations has a valid value (10-50 range)
-  const maxRecentConversations = Number(settingsToSanitize.maxRecentConversations);
-  if (isNaN(maxRecentConversations) || maxRecentConversations < 10 || maxRecentConversations > 50) {
-    sanitizedSettings.maxRecentConversations = DEFAULT_SETTINGS.maxRecentConversations;
-  } else {
-    sanitizedSettings.maxRecentConversations = maxRecentConversations;
   }
 
   // Ensure autosaveChat has a default value

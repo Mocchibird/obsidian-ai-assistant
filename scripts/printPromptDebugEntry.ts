@@ -6,7 +6,6 @@ import { ToolRegistry } from "@/tools/ToolRegistry";
 import { ChatMessage } from "@/types/message";
 import { initializeBuiltinTools } from "@/tools/builtinTools";
 import { getSettings } from "@/settings/model";
-import { UserMemoryManager } from "@/memory/UserMemoryManager";
 import type { App } from "obsidian";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
@@ -113,10 +112,9 @@ export async function run(args: string[]): Promise<void> {
     .join("\n");
 
   const memoryManager = MemoryManager.getInstance();
-  const userMemoryManager = new UserMemoryManager(app as unknown as App);
   const chainContext = {
     memoryManager,
-    userMemoryManager,
+    app: app as unknown as App,
   } as unknown as ChainManager;
 
   const adapter = ModelAdapterFactory.createAdapter({

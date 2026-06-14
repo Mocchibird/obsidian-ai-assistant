@@ -2,9 +2,9 @@ import { getSettings } from "@/settings/model";
 import { AGENT_LOOP_TIMEOUT_MS } from "@/constants";
 import { MessageContent } from "@/imageProcessing/imageProcessor";
 import { logError, logInfo, logWarn } from "@/logger";
-import { UserMemoryManager } from "@/memory/UserMemoryManager";
+import { App } from "obsidian";
 import { AutoKnowledgeManager } from "@/knowledge/AutoKnowledgeManager";
-import { getSystemPromptWithMemory } from "@/system-prompts/systemPromptBuilder";
+import { getSystemPrompt, getSystemPromptWithMemory } from "@/system-prompts/systemPromptBuilder";
 import { initializeBuiltinTools } from "@/tools/builtinTools";
 import { ToolRegistry } from "@/tools/ToolRegistry";
 import { StructuredTool } from "@langchain/core/tools";
@@ -305,9 +305,9 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
   public static async generateSystemPrompt(
     availableTools: StructuredTool[],
     _adapter?: ModelAdapter, // Unused, kept for backwards compatibility with tests
-    userMemoryManager?: UserMemoryManager
+    app?: App
   ): Promise<string> {
-    const basePrompt = await getSystemPromptWithMemory(userMemoryManager);
+    const basePrompt = app ? await getSystemPromptWithMemory(app) : getSystemPrompt();
 
     // Get tool metadata for custom instructions (semantic guidance only)
     const registry = ToolRegistry.getInstance();
@@ -590,16 +590,12 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
       .map((meta) => `For ${meta.displayName}: ${meta.customPromptInstructions}`)
       .join("\n");
 
-    // Recall RAG-ranked memories + skills learned automatically from past sessions.
-    const knowledgeRecall = await AutoKnowledgeManager.getInstance(
-      this.chainManager.app
-    ).getRecallSection(userMessage.message);
-
-    // Combine system message with tool guidelines and agent loop guidance
+    // Combine system message with tool guidelines and agent loop guidance.
+    // Recalled memories/skills already arrive via the L1 system message (injected
+    // centrally in ChatManager.getSystemPromptForMessage), so no recall is added here.
     const systemContent = [
       systemMessage?.content || "",
       toolInstructions ? `\n## Tool Guidelines\n${toolInstructions}` : "",
-      knowledgeRecall,
       AGENT_LOOP_GUIDANCE,
     ]
       .filter(Boolean)

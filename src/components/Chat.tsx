@@ -655,17 +655,6 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
     await logFileManager.clear();
     handleStopGenerating(ABORT_REASON.NEW_CHAT);
 
-    // Analyze chat messages for memory if enabled
-    if (settings.enableRecentConversations) {
-      try {
-        // Get the current chat model from the chain manager
-        const chatModel = chainManager.chatModelManager.getChatModel();
-        plugin.userMemoryManager.addRecentConversation(chatUIState.getMessages(), chatModel);
-      } catch (error) {
-        logInfo("Failed to analyze chat messages for memory:", error);
-      }
-    }
-
     // Automatically extract durable memories from the conversation (gated by enableAutoMemory).
     try {
       const chatModel = chainManager.chatModelManager.getChatModel();
@@ -711,7 +700,6 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
     chainManager.chatModelManager,
     chatUIState,
     settings.autosaveChat,
-    settings.enableRecentConversations,
     settings.autoAddActiveContentToContext,
     selectedChain,
     handleSaveAsNote,

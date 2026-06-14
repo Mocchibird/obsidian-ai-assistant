@@ -15,7 +15,6 @@ import {
 } from "@/imageProcessing/imageProcessor";
 import { logInfo, logWarn } from "@/logger";
 import { getSettings } from "@/settings/model";
-import { getSystemPromptWithMemory } from "@/system-prompts/systemPromptBuilder";
 import { writeFileTool } from "@/tools/ComposerTools";
 import { ToolManager } from "@/tools/toolManager";
 import { ToolResultFormatter } from "@/tools/ToolResultFormatter";
@@ -1237,10 +1236,6 @@ Include your extracted terms as: [SALIENT_TERMS: term1, term2, term3]`;
     }
 
     return { formattedForLLM, formattedForDisplay, sources };
-  }
-
-  protected async getSystemPrompt(): Promise<string> {
-    return getSystemPromptWithMemory(this.chainManager.userMemoryManager);
   }
 
   /**

@@ -33,6 +33,10 @@ export class MemoryStore {
       try {
         const parsed = parseNote(await this.app.vault.cachedRead(file));
         const fm = parsed.frontmatter;
+        // Only treat notes carrying our frontmatter as memory records. This lets
+        // the auto-memory folder coexist with the legacy memory files
+        // (Recent Conversations.md / Saved Memories.md) without ingesting them.
+        if (fm.created === undefined && fm.category === undefined) continue;
         records.push({
           slug: file.basename,
           text: parsed.body || String(fm.text ?? ""),

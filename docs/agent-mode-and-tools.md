@@ -78,7 +78,7 @@ Lists all tags in your vault with usage statistics. Useful for tag reorganizatio
 
 Saves information to your memory when you explicitly ask the AI to remember something. See [Memory and Self-Host](memory-and-self-host.md#memory-system) for details.
 
-> **Requires**: **Settings → Copilot → Reference Saved Memories** must be enabled. If this setting is off, the tool is not registered and memory commands will not work.
+> **Requires**: automatic memory (the `enableAutoMemory` setting) must be enabled. If it's off, the tool is not registered and memory commands will not work.
 
 #### Manage Skills
 
@@ -100,7 +100,7 @@ Searches your vault notes by content. The agent uses this to find notes relevant
 Searches the internet for current information.
 
 - **Trigger**: Automatically when your question implies web/online content, or explicitly with `@websearch` or `@web`
-- **Requires**: A web search service configured. In self-host mode you supply your own Firecrawl or Perplexity key — see [Memory and Self-Host](memory-and-self-host.md#web-search-in-self-host-mode).
+- **Works out of the box** via **DuckDuckGo** — no setup or API key. You can switch the provider (SearXNG, Firecrawl, Perplexity) under Settings → Copilot → QA → Web Search — see [Memory and Self-Host](memory-and-self-host.md#web-search).
 
 #### Write to File
 
@@ -132,7 +132,7 @@ Fetches the transcript of a YouTube video.
 
 The agent can learn from what you do together and turn repeatable work into reusable **skills**, so the next time a similar task comes up it already knows how to handle it.
 
-After the agent finishes a multi-step task (roughly two or more tool steps), it asks itself whether the session contained a procedure worth keeping. If it did, Copilot saves a **skill** as a plain-markdown note in a dedicated **Skills** folder in your vault. A skill note contains:
+After the agent finishes a multi-step task (roughly two or more tool steps), it asks itself whether the session contained a procedure worth keeping. If it did, Copilot saves a **skill** as a plain-markdown note in the `copilot/skills` folder in your vault. A skill note contains:
 
 - A short description of what it does
 - A "when to use" note, so the agent knows when it applies
@@ -145,7 +145,7 @@ You can manage skills yourself too. Mention `@skills` in chat to use the **Manag
 Settings:
 
 - **Enabled by default.** Automatic skill creation is on out of the box (the `enableAutoSkillCreation` setting).
-- **Skills folder**: skills are written to a folder named `Skills` at the root of your vault by default (the `skillsFolder` setting). You can rename or move it; the plugin will use whatever folder is configured.
+- **Skills folder**: skills are written to the `copilot/skills` folder by default (the `skillsFolder` setting). You can rename or move it; the plugin will use whatever folder is configured.
 
 > Relevant skills are retrieved automatically and added to the AI's context for each message, ranked by relevance to what you asked. See [Automatic Recall](memory-and-self-host.md#automatic-recall-memory-and-skills).
 

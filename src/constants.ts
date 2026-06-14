@@ -13,6 +13,7 @@ export const COPILOT_FOLDER_ROOT = "copilot";
 const DEFAULT_CHAT_HISTORY_FOLDER = `${COPILOT_FOLDER_ROOT}/copilot-conversations`;
 const DEFAULT_CUSTOM_PROMPTS_FOLDER = `${COPILOT_FOLDER_ROOT}/copilot-custom-prompts`;
 const DEFAULT_MEMORY_FOLDER = `${COPILOT_FOLDER_ROOT}/memory`;
+const DEFAULT_SKILLS_FOLDER = `${COPILOT_FOLDER_ROOT}/skills`;
 const DEFAULT_SYSTEM_PROMPTS_FOLDER = `${COPILOT_FOLDER_ROOT}/system-prompts`;
 const DEFAULT_PROJECTS_FOLDER = `${COPILOT_FOLDER_ROOT}/projects`;
 const DEFAULT_CONVERTED_DOC_OUTPUT_FOLDER = "";
@@ -829,7 +830,7 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   githubCopilotAccessToken: "",
   githubCopilotToken: "",
   githubCopilotTokenExpiresAt: 0,
-  defaultChainType: ChainType.LLM_CHAIN,
+  defaultChainType: ChainType.COPILOT_PLUS_CHAIN,
   defaultModelKey: ChatModels.GPT_41 + "|" + ChatModelProviders.OPENAI_FORMAT,
   embeddingModelKey:
     EmbeddingModels.OPENAI_EMBEDDING_SMALL + "|" + EmbeddingModelProviders.OPENAI_FORMAT,
@@ -887,7 +888,8 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   selfHostUrl: "",
   selfHostApiKey: "",
   miyoServerUrl: "",
-  selfHostSearchProvider: "firecrawl",
+  selfHostSearchProvider: "duckduckgo",
+  searxngUrl: "",
   firecrawlApiKey: "",
   perplexityApiKey: "",
   supadataApiKey: "",
@@ -906,14 +908,10 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   ],
   reasoningEffort: DEFAULT_MODEL_SETTING.REASONING_EFFORT,
   verbosity: DEFAULT_MODEL_SETTING.VERBOSITY,
-  memoryFolderName: DEFAULT_MEMORY_FOLDER,
-  enableRecentConversations: true,
-  maxRecentConversations: 30,
-  enableSavedMemory: true,
   enableAutoMemory: true,
-  autoMemoryFolder: "Memory",
+  autoMemoryFolder: DEFAULT_MEMORY_FOLDER,
   enableAutoSkillCreation: true,
-  skillsFolder: "Skills",
+  skillsFolder: DEFAULT_SKILLS_FOLDER,
   quickCommandModelKey: undefined,
   quickCommandIncludeNoteContext: true,
   autoIncludeTextSelection: false,

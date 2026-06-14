@@ -2,6 +2,11 @@ import { generatePromptDebugReportForAgent, resolveBasePrompt } from "./promptDe
 import type ChainManager from "@/LLMProviders/chainManager";
 import { ModelAdapter, PromptSection } from "./modelAdapter";
 import { PromptDebugReport } from "./toolPromptDebugger";
+import { getSystemPromptWithMemory } from "@/system-prompts/systemPromptBuilder";
+
+jest.mock("@/system-prompts/systemPromptBuilder", () => ({
+  getSystemPromptWithMemory: jest.fn().mockResolvedValue("base prompt with recalled knowledge"),
+}));
 
 const createAdapter = () => ({
   buildSystemPromptSections: jest.fn(
@@ -33,9 +38,6 @@ const createChainContext = (history: unknown[] = []): ChainManager => {
   return {
     memoryManager: {
       getMemory: () => memory,
-    },
-    userMemoryManager: {
-      getUserMemoryPrompt: jest.fn().mockResolvedValue(null),
     },
   } as unknown as ChainManager;
 };
@@ -85,15 +87,12 @@ describe("promptDebugService", () => {
     expect(report.systemPrompt).toBeDefined();
   });
 
-  it("resolves base prompt using provided user memory manager", async () => {
-    const memoryPrompt = "<memory>data</memory>";
-    const chainManager = {
-      userMemoryManager: {
-        getUserMemoryPrompt: jest.fn().mockResolvedValue(memoryPrompt),
-      },
-    } as unknown as ChainManager;
+  it("resolves base prompt via the knowledge-aware system prompt builder", async () => {
+    const chainManager = { app: {} } as unknown as ChainManager;
 
     const prompt = await resolveBasePrompt(chainManager);
-    expect(prompt).toContain(memoryPrompt);
+
+    expect(getSystemPromptWithMemory).toHaveBeenCalledWith(chainManager.app);
+    expect(prompt).toBe("base prompt with recalled knowledge");
   });
 });

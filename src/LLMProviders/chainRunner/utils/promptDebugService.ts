@@ -62,11 +62,11 @@ export async function generatePromptDebugReportForAgent(
 /**
  * Convenience helper to compute the base prompt with memory using the provided chain manager.
  *
- * @param chainManager - Chain manager hosting the user memory manager.
- * @returns The base system prompt inclusive of memory content.
+ * @param chainManager - Chain manager providing the app for knowledge recall.
+ * @returns The base system prompt inclusive of recalled knowledge.
  */
 export async function resolveBasePrompt(chainManager: ChainManager): Promise<string> {
-  return getSystemPromptWithMemory(chainManager.userMemoryManager);
+  return getSystemPromptWithMemory(chainManager.app);
 }
 
 interface AgentPromptDebugOptions {

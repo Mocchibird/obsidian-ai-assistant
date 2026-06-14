@@ -30,7 +30,6 @@ import {
   flushPersistence,
   resetPersistenceState,
 } from "@/services/settingsPersistence";
-import { UserMemoryManager } from "@/memory/UserMemoryManager";
 import { clearRecordedPromptPayload } from "@/LLMProviders/chainRunner/utils/promptPayloadRecorder";
 import {
   getWebViewerService,
@@ -94,7 +93,6 @@ export default class CopilotPlugin extends Plugin {
   projectRegister: ProjectRegister;
   settingsUnsubscriber?: () => void;
   chatUIState: ChatUIState;
-  userMemoryManager: UserMemoryManager;
   quickAskController: QuickAskController;
   chatSelectionHighlightController: ChatSelectionHighlightController;
   private selectionDebounceTimer?: number;
@@ -159,9 +157,6 @@ export default class CopilotPlugin extends Plugin {
     const chainManager = this.projectManager.getCurrentChainManager();
     const chatManager = new ChatManager(messageRepo, chainManager, this.fileParserManager, this);
     this.chatUIState = new ChatUIState(chatManager);
-
-    // Initialize UserMemoryManager
-    this.userMemoryManager = new UserMemoryManager(this.app);
 
     // Initialize QuickAskController and register CM6 extension
     this.quickAskController = new QuickAskController(this);
@@ -890,18 +885,6 @@ export default class CopilotPlugin extends Plugin {
   async handleNewChat() {
     clearRecordedPromptPayload();
     await logFileManager.clear();
-
-    // Analyze chat messages for memory if enabled
-    if (getSettings().enableRecentConversations) {
-      try {
-        // Get the current chat model from the chain manager
-        const chainManager = this.projectManager.getCurrentChainManager();
-        const chatModel = chainManager.chatModelManager.getChatModel();
-        this.userMemoryManager.addRecentConversation(this.chatUIState.getMessages(), chatModel);
-      } catch (error) {
-        logInfo("Failed to analyze chat messages for memory:", error);
-      }
-    }
 
     // Automatically extract durable memories from the conversation (gated by enableAutoMemory).
     try {

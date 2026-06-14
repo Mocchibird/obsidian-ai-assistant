@@ -1,7 +1,8 @@
-import { UserMemoryManager } from "@/memory/UserMemoryManager";
+import { App } from "obsidian";
+import { DateTime } from "luxon";
 import { getSettings } from "@/settings/model";
 import { DEFAULT_SYSTEM_PROMPT } from "@/constants";
-import { logInfo } from "@/logger";
+import { AutoKnowledgeManager } from "@/knowledge/AutoKnowledgeManager";
 import {
   getDisableBuiltinSystemPrompt,
   getEffectiveSystemPromptContent,
@@ -55,27 +56,30 @@ ${userPrompt}
 }
 
 /**
- * Build system prompt with user memory prefix.
- * Memory content is prepended to the system prompt if available.
+ * Build the system prompt with the current date/time and automatically-recalled
+ * knowledge prepended.
  *
- * @param userMemoryManager - Optional memory manager to fetch user memory
- * @returns The complete system prompt with memory prefix
+ * - A live date/time line grounds the model in the present moment, so it doesn't
+ *   answer time-sensitive questions from its (stale) training cutoff.
+ * - Relevant memories and skills (ranked against the current message) are fetched
+ *   from the {@link AutoKnowledgeManager} so every chat mode benefits from learned
+ *   knowledge.
+ *
+ * Both are emitted as a prefix, leaving the trailing `getSystemPrompt()` portion
+ * intact for downstream template processing (ChatManager replaces only that
+ * suffix).
+ *
+ * @param app - Obsidian app instance (edge dependency for the knowledge stores).
+ * @param query - Current user message used to rank relevant memories/skills.
+ * @returns The complete system prompt, with date and learned-knowledge prefixes.
  */
-export async function getSystemPromptWithMemory(
-  userMemoryManager: UserMemoryManager | undefined
-): Promise<string> {
+export async function getSystemPromptWithMemory(app: App, query = ""): Promise<string> {
   const systemPrompt = getSystemPrompt();
+  const recall = await AutoKnowledgeManager.getInstance(app).getRecallSection(query);
 
-  if (!userMemoryManager) {
-    logInfo("No UserMemoryManager provided to getSystemPromptWithMemory");
-    return systemPrompt;
-  }
-  const memoryPrompt = await userMemoryManager.getUserMemoryPrompt();
+  const now = DateTime.now();
+  const dateLine = `The current date and time is ${now.toFormat("yyyy-MM-dd HH:mm")} (${now.zoneName}, ${now.weekdayLong}). Use this as the present moment when answering time-sensitive questions.`;
 
-  // Only include user_memory section if there's actual memory content
-  if (!memoryPrompt) {
-    return systemPrompt;
-  }
-
-  return `${memoryPrompt}\n${systemPrompt}`;
+  const prefix = recall ? `${dateLine}\n${recall}` : dateLine;
+  return `${prefix}\n${systemPrompt}`;
 }

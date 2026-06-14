@@ -6,37 +6,21 @@ This fork unlocks every feature for free and keeps your data on your machine. Th
 
 ## Memory System
 
-The memory system lets Copilot remember things across conversations, so you don't have to repeat yourself. Everything it remembers is stored locally in your vault as plain markdown — nothing leaves your machine for this feature.
+Copilot remembers durable facts about you across conversations, so you don't have to repeat yourself. There is **one** memory system: each fact is stored as its own plain-markdown note in the `copilot/memory` folder in your vault. These are ordinary notes — you can open, edit, or delete any of them at any time, and they show up in normal vault search like everything else. Nothing leaves your machine for this feature.
 
-### Recent Conversations
+Memories are created two ways:
 
-Copilot can reference your recent conversation history to provide more contextually relevant responses. This is separate from the current chat window — it's a summary of what you've been working on.
+### Automatically
 
-- **Enable**: **Settings → Copilot → Reference Recent Conversation** (on by default)
-- **How many**: **Settings → Copilot → Max Recent Conversations** — default 30, range 10–50
-- All history is stored locally in your vault (no data leaves your machine for this feature)
+After a conversation ends, the plugin quietly reviews it and pulls out up to a couple of durable, personal facts — things like your name, your role, your preferences, or a project you're working on. It ignores passing details and only keeps facts that are likely to stay useful over time.
 
-### Saved Memories
+### On request
 
-You can ask Copilot to explicitly remember specific facts about you:
+You can also ask Copilot to remember something explicitly:
 
 ```
 @memory remember that I'm preparing for JLPT N3 and prefer bullet-point summaries
 ```
-
-Copilot saves this to a memory file in your vault and references it in future conversations.
-
-- **Enable**: **Settings → Copilot → Reference Saved Memories** (on by default)
-- **Memory folder**: **Settings → Copilot → Memory Folder Name** — default: `copilot/memory`
-- **Update memory tool**: The AI can add, update, or remove memories when you ask
-
-### Automatic Memory
-
-In addition to memories you ask for explicitly, Copilot can also remember things on its own — so it gradually learns who you are without you having to spell it out.
-
-After a conversation ends, the plugin quietly reviews it and pulls out up to a couple of durable, personal facts — things like your name, your role, your preferences, or a project you're working on. It ignores passing details and only keeps facts that are likely to stay useful over time.
-
-Each fact is saved as its own plain-markdown note in a dedicated **Memory** folder in your vault. These are ordinary notes — you can open, edit, or delete any of them at any time, and they show up in normal vault search like everything else.
 
 A few things worth knowing:
 
@@ -47,9 +31,9 @@ A few things worth knowing:
 Settings:
 
 - **Enabled by default.** Automatic memory creation is on out of the box (the `enableAutoMemory` setting).
-- **Memory folder**: automatic memories are written to a folder named `Memory` at the root of your vault by default (the `autoMemoryFolder` setting). You can rename or move it; the plugin will use whatever folder is configured.
+- **Memory folder**: memories are written to the `copilot/memory` folder by default (the `autoMemoryFolder` setting). You can rename or move it; the plugin will use whatever folder is configured.
 
-> Automatic memories are also retrieved automatically and added to the AI's context for each message, ranked by how relevant they are to what you asked. See [Automatic recall](#automatic-recall-memory-and-skills) below.
+> Memories are retrieved automatically and added to the AI's context for each message, ranked by how relevant they are to what you asked. See [Automatic recall](#automatic-recall-memory-and-skills) below.
 
 ---
 
@@ -83,7 +67,7 @@ This mode is available to everyone in this fork — there is no license, account
 ### What Self-Host Mode Enables
 
 - Use local or custom LLM servers
-- Custom web search via Firecrawl or Perplexity Sonar (using your own keys)
+- Web search via DuckDuckGo (default, no setup), a self-hosted SearXNG instance, or Firecrawl / Perplexity Sonar
 - Local YouTube transcript extraction via Supadata (using your own key)
 - Miyo desktop app for local PDF parsing, semantic search, and more
 
@@ -94,12 +78,14 @@ This mode is available to everyone in this fork — there is no license, account
 3. Toggle **Enable Miyo** to use the Miyo desktop app for local search, PDF parsing, and context.
 4. _(Optional)_ Set **Custom Miyo Server URL** only if Miyo is running on a remote machine. Leave blank to use automatic local service discovery.
 
-### Web Search in Self-Host Mode
+### Web Search
 
-Choose your web search provider and supply your own key:
+The agent's web search tool (`@web`) needs a search backend. Pick one under **Settings → Copilot → QA → Web Search Provider** — no separate "self-host mode" toggle is required:
 
-- **Firecrawl** — A web crawling and scraping API. Get a key at firecrawl.dev. Enter it in **Settings → Copilot → Self-Host → Firecrawl API Key**.
-- **Perplexity Sonar** — An AI-powered search API. Get a key at perplexity.ai. Enter it in **Settings → Copilot → Self-Host → Perplexity API Key**.
+- **DuckDuckGo (default, no setup)** — Works out of the box: no API key, no server, nothing to host. Searches go directly to DuckDuckGo. This is what you get on a fresh install. _(It uses DuckDuckGo's public HTML results page, an unofficial interface that can occasionally rate-limit or change.)_
+- **SearXNG (self-hosted)** — Run your own [SearXNG](https://docs.searxng.org/) metasearch instance for maximum privacy and point Copilot at it. No API key — your searches go to a server you control. Enter the instance URL (e.g. `http://localhost:8080`) in **SearXNG URL**. Your instance must allow the JSON output format (`search.formats: [json]` in SearXNG's `settings.yml`).
+- **Firecrawl** — A hosted web search/scraping API. Get a key at firecrawl.dev and enter it in **Firecrawl API Key**.
+- **Perplexity Sonar** — A hosted AI search API. Get a key at perplexity.ai and enter it in **Perplexity API Key**.
 
 ### YouTube Transcription in Self-Host Mode
 

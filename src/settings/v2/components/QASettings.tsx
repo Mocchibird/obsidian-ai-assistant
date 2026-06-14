@@ -83,6 +83,59 @@ export const QASettings: React.FC = () => {
             onCheckedChange={(checked) => updateSetting("enableInlineCitations", checked)}
           />
 
+          {/* Web Search Provider — powers the agent's @web / web search tool */}
+          <SettingItem
+            type="select"
+            title="Web Search Provider"
+            description="Backend used by the agent's web search tool. DuckDuckGo works out of the box with no setup; SearXNG is self-hosted; Firecrawl/Perplexity need an API key."
+            value={settings.selfHostSearchProvider}
+            onChange={(value) =>
+              updateSetting(
+                "selfHostSearchProvider",
+                value as "duckduckgo" | "searxng" | "firecrawl" | "perplexity"
+              )
+            }
+            options={[
+              { label: "DuckDuckGo (no setup)", value: "duckduckgo" },
+              { label: "SearXNG (self-hosted)", value: "searxng" },
+              { label: "Firecrawl", value: "firecrawl" },
+              { label: "Perplexity", value: "perplexity" },
+            ]}
+          />
+
+          {settings.selfHostSearchProvider === "searxng" && (
+            <SettingItem
+              type="text"
+              title="SearXNG URL"
+              description="Base URL of your SearXNG instance. The instance must allow the JSON output format."
+              value={settings.searxngUrl}
+              onChange={(value) => updateSetting("searxngUrl", value)}
+              placeholder="http://localhost:8080"
+            />
+          )}
+
+          {settings.selfHostSearchProvider === "firecrawl" && (
+            <SettingItem
+              type="password"
+              title="Firecrawl API Key"
+              description="API key for Firecrawl web search."
+              value={settings.firecrawlApiKey}
+              onChange={(value) => updateSetting("firecrawlApiKey", value)}
+              placeholder="fc-..."
+            />
+          )}
+
+          {settings.selfHostSearchProvider === "perplexity" && (
+            <SettingItem
+              type="password"
+              title="Perplexity API Key"
+              description="API key for Perplexity Sonar web search."
+              value={settings.perplexityApiKey}
+              onChange={(value) => updateSetting("perplexityApiKey", value)}
+              placeholder="pplx-..."
+            />
+          )}
+
           <SettingItem
             type="select"
             title="Embedding Model"

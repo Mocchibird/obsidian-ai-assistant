@@ -516,7 +516,7 @@ export function initializeBuiltinTools(vault?: Vault): void {
   const hasFileTree = registry.getToolMetadata("getFileTree") !== undefined;
   const shouldHaveFileTree = vault !== undefined;
   const hasUpdateMemoryTool = registry.getToolMetadata("updateMemory") !== undefined;
-  const shouldHaveMemoryTool = settings.enableSavedMemory;
+  const shouldHaveMemoryTool = settings.enableAutoMemory;
   const hasSkillTool = registry.getToolMetadata("manageSkills") !== undefined;
   const shouldHaveSkillTool = settings.enableAutoSkillCreation;
 
@@ -538,8 +538,8 @@ export function initializeBuiltinTools(vault?: Vault): void {
       registerTagListTool();
     }
 
-    // Register memory tool if saved memory is enabled
-    if (settings.enableSavedMemory) {
+    // Register memory tool if automatic memory is enabled
+    if (settings.enableAutoMemory) {
       registerMemoryTool();
     }
 

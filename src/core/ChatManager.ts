@@ -230,16 +230,16 @@ export class ChatManager {
   private async getSystemPromptForMessage(
     chainType: ChainType,
     vault: Vault,
-    activeNote: TFile | null
+    activeNote: TFile | null,
+    query: string
   ): Promise<ProcessedPromptResult> {
     // Use getEffectiveUserPrompt to ensure consistency with getSystemPrompt (includes legacy fallback)
     const userCustomPrompt = getEffectiveUserPrompt();
     const allIncludedFiles: TFile[] = [];
 
-    // Preserve original behavior (memory + system prompt) via settings/model helpers
-    const basePromptWithMemory = await getSystemPromptWithMemory(
-      this.chainManager.userMemoryManager
-    );
+    // Prepend automatically-recalled memories/skills (ranked against the current
+    // message) to the system prompt; this flows into the L1 layer for every mode.
+    const basePromptWithMemory = await getSystemPromptWithMemory(this.plugin.app, query);
     const systemPromptWithoutMemory = getSystemPrompt();
 
     let processedBasePromptWithMemory = basePromptWithMemory;
@@ -470,7 +470,12 @@ export class ChatManager {
 
       // Get system prompt for L1 layer (includes project context if in project mode)
       const { processedPrompt: systemPrompt, includedFiles: systemPromptIncludedFiles } =
-        await this.getSystemPromptForMessage(chainType, this.plugin.app.vault, activeNote);
+        await this.getSystemPromptForMessage(
+          chainType,
+          this.plugin.app.vault,
+          activeNote,
+          message.message
+        );
 
       // Process context to generate LLM content
       const { processedContent, contextEnvelope } = await this.contextManager.processMessageContext(
@@ -526,7 +531,7 @@ export class ChatManager {
       // Reprocess context for the edited message
       const activeNote = this.plugin.app.workspace.getActiveFile();
       const { processedPrompt: systemPrompt, includedFiles: systemPromptIncludedFiles } =
-        await this.getSystemPromptForMessage(chainType, this.plugin.app.vault, activeNote);
+        await this.getSystemPromptForMessage(chainType, this.plugin.app.vault, activeNote, newText);
       await this.contextManager.reprocessMessageContext(
         messageId,
         currentRepo,
@@ -615,7 +620,12 @@ export class ChatManager {
         const chainType = getChainType();
         const activeNote = this.plugin.app.workspace.getActiveFile();
         const { processedPrompt: systemPrompt, includedFiles: systemPromptIncludedFiles } =
-          await this.getSystemPromptForMessage(chainType, this.plugin.app.vault, activeNote);
+          await this.getSystemPromptForMessage(
+            chainType,
+            this.plugin.app.vault,
+            activeNote,
+            userMessage.message
+          );
         await this.contextManager.reprocessMessageContext(
           userMessage.id,
           currentRepo,

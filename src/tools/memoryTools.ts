@@ -1,42 +1,34 @@
 import { z } from "zod";
 import { createLangChainTool } from "./createLangChainTool";
-import { UserMemoryManager } from "@/memory/UserMemoryManager";
+import { MemoryStore } from "@/knowledge/MemoryStore";
+import { getSettings } from "@/settings/model";
 import { logError } from "@/logger";
-import ChatModelManager from "@/LLMProviders/chatModelManager";
 
 // Define Zod schema for updateMemoryTool
 const memorySchema = z.object({
   statement: z
     .string()
     .min(1)
-    .describe("The user statement for explicitly updating saved memories"),
+    .describe("A durable fact about the user to remember across future conversations"),
 });
 
 /**
- * Memory tool for saving information that the user explicitly asks the assistant to remember
+ * Memory tool for saving information the user explicitly asks the assistant to
+ * remember. Writes a memory note into the configured memory folder, where it is
+ * deduplicated and later recalled automatically alongside auto-created memories.
  */
 export const updateMemoryTool = createLangChainTool({
   name: "updateMemory",
-  description: "Update the user memory when the user explicitly asks to update the memory",
+  description: "Save a durable fact to memory when the user explicitly asks you to remember it",
   schema: memorySchema,
   func: async ({ statement }) => {
     try {
-      const memoryManager = new UserMemoryManager(app);
-      const chatModel = ChatModelManager.getInstance().getChatModel();
-      const result = await memoryManager.updateSavedMemory(statement, chatModel);
+      const store = new MemoryStore(app, getSettings().autoMemoryFolder);
+      const added = await store.add(statement, "fact", "user");
 
-      if (result.error) {
-        return {
-          success: false,
-          message: result.error,
-        };
-      }
-
-      const memoryFilePath = memoryManager.getSavedMemoriesFilePath();
-      return {
-        success: true,
-        message: `Memory updated successfully into ${memoryFilePath}: ${result.content}`,
-      };
+      return added
+        ? { success: true, message: `Saved to memory: ${statement}` }
+        : { success: false, message: "A similar memory already exists; nothing to add." };
     } catch (error: unknown) {
       logError("[updateMemoryTool] Error updating memory:", error);
 

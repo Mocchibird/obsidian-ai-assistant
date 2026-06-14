@@ -563,7 +563,7 @@ const webSearchTool = createLangChainTool({
 
       if (!hasSelfHostSearchKey()) {
         throw new Error(
-          "Web search requires a configured search provider (Firecrawl or Perplexity). Set an API key in settings."
+          "Web search requires a configured search provider. Set a SearXNG URL (recommended, self-hosted) or a Firecrawl/Perplexity API key in Copilot settings → QA → Web Search."
         );
       }
 
