@@ -406,7 +406,7 @@ A quick fix for **Miyo on Windows**, **converted doc output**, and **CORS fixes*
 
 - 🖥️ **Cross-platform Miyo service discovery** — Miyo now works on **Windows** (Local + Roaming AppData fallback) (@wenzhengjiang)
 - 📂 **Configurable output folder for converted docs** — New setting "Store converted markdown at" lets you save PDF/doc conversions as `.md` files in your vault. Great for reviewing what Copilot parsed and let Miyo index them for search! Enable it under Document Processor (Copilot settings -> Plus). (@logancyang)
-- 🛠️ **Fix: CORS errors on license & API calls** — Resolved intermittent CORS failures by routing BrevilabsClient through Obsidian's native request layer. If you saw license validation errors, this should fix it. (@logancyang)
+- 🛠️ **Fix: CORS errors on API calls** — Resolved intermittent CORS failures by routing API calls through Obsidian's native request layer. (@logancyang)
 - 🩺 **Fix: Miyo health check logging** — Non-"ok" health statuses (e.g. "degraded") are now properly logged instead of failing silently, making troubleshooting much easier. (@wenzhengjiang)
 - 📝 Minor: Fixed broken FAQ link in README (@somethingSTRANGE), updated Miyo messaging from "upcoming" to "our desktop app" (@logancyang)
 
@@ -1439,7 +1439,7 @@ Check out the details below!
 
 # Bug fixes
 
-- #918 Brevilabs CORS issue @logancyang
+- #918 CORS issue fix @logancyang
 - #917 Clear chat context on new chat @logancyang
 
 ---

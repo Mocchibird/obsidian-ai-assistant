@@ -1,10 +1,8 @@
 import { getStandaloneQuestion } from "@/chainUtils";
 import { TEXT_WEIGHT } from "@/constants";
-import { BrevilabsClient } from "@/LLMProviders/brevilabsClient";
 import { hasSelfHostSearchKey, selfHostWebSearch } from "@/LLMProviders/selfHostServices";
 import { logInfo } from "@/logger";
 import { shouldUseMiyo } from "@/miyo/miyoUtils";
-import { isSelfHostModeValid } from "@/plusUtils";
 import { RetrieverFactory } from "@/search/RetrieverFactory";
 import { getSettings } from "@/settings/model";
 import { z } from "zod";
@@ -563,18 +561,15 @@ const webSearchTool = createLangChainTool({
       // Get standalone question considering chat history
       const standaloneQuestion = await getStandaloneQuestion(query, chatHistory);
 
-      let webContent: string;
-      let citations: string[];
-
-      if (isSelfHostModeValid() && hasSelfHostSearchKey()) {
-        const result = await selfHostWebSearch(standaloneQuestion);
-        webContent = result.content;
-        citations = result.citations;
-      } else {
-        const response = await BrevilabsClient.getInstance().webSearch(standaloneQuestion);
-        webContent = response.response.choices[0].message.content;
-        citations = response.response.citations || [];
+      if (!hasSelfHostSearchKey()) {
+        throw new Error(
+          "Web search requires a configured search provider (Firecrawl or Perplexity). Set an API key in settings."
+        );
       }
+
+      const result = await selfHostWebSearch(standaloneQuestion);
+      const webContent = result.content;
+      const citations = result.citations;
 
       // Return structured JSON response for consistency with other tools
       // Format as an array of results like localSearch does

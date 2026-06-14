@@ -560,7 +560,7 @@ Use getTimeRangeMs before localSearch for time-based queries.
 2. **Tool Chaining** - Can use results from one tool to inform the next
 3. **Complex Workflows** - Multi-step reasoning with tool support
 4. **Model Agnostic** - Works with any LLM that supports native tool calling
-5. **No External Dependencies** - No Brevilabs API required
+5. **No External Dependencies** - Works with any compatible LLM provider
 6. **Transparency** - User can see the AI's reasoning process via Agent Reasoning Block
 7. **Native Integration** - Uses LangChain's `bindTools()` for proper tool calling support
 

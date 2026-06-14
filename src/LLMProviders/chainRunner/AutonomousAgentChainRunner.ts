@@ -1,9 +1,9 @@
+import { getSettings } from "@/settings/model";
 import { AGENT_LOOP_TIMEOUT_MS } from "@/constants";
 import { MessageContent } from "@/imageProcessing/imageProcessor";
 import { logError, logInfo, logWarn } from "@/logger";
 import { UserMemoryManager } from "@/memory/UserMemoryManager";
-import { checkIsPlusUser } from "@/plusUtils";
-import { getSettings } from "@/settings/model";
+import { AutoKnowledgeManager } from "@/knowledge/AutoKnowledgeManager";
 import { getSystemPromptWithMemory } from "@/system-prompts/systemPromptBuilder";
 import { initializeBuiltinTools } from "@/tools/builtinTools";
 import { ToolRegistry } from "@/tools/ToolRegistry";
@@ -386,31 +386,10 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
     this.llmFormattedMessages = [];
     this.lastDisplayedContent = "";
 
-    const isPlusUser = await checkIsPlusUser({
-      isAutonomousAgent: true,
-    });
-
     const chatModel = this.chainManager.chatModelManager.getChatModel();
     const adapter = ModelAdapterFactory.createAdapter(chatModel);
     // Agent mode should never show thinking tokens in the response
     const thinkStreamer = new ThinkBlockStreamer(updateCurrentAiMessage, true);
-
-    if (!isPlusUser) {
-      await this.handleError(
-        new Error("Invalid license key"),
-        thinkStreamer.processErrorChunk.bind(thinkStreamer) as (message: string) => void
-      );
-      const errorResponse = thinkStreamer.close().content;
-      return this.handleResponse(
-        errorResponse,
-        userMessage,
-        abortController,
-        addMessage,
-        updateCurrentAiMessage,
-        undefined
-      );
-    }
-
     const modelNameForLog = (chatModel as { modelName?: string } | undefined)?.modelName;
 
     const envelope = userMessage.contextEnvelope;
@@ -472,6 +451,24 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
         uniqueSources.length > 0 ? uniqueSources : undefined,
         this.llmFormattedMessages.join("\n\n"),
         loopResult.responseMetadata
+      );
+
+      // Automatically learn a reusable skill from a sufficiently complex run (background).
+      const toolCallCount = this.allReasoningSteps.filter((step) => step.toolName).length;
+      const skillTranscript = [
+        `User: ${userMessage.message}`,
+        this.llmFormattedMessages.join("\n\n"),
+        `Assistant: ${loopResult.finalResponse}`,
+      ]
+        .filter((part) => part.trim().length > 0)
+        .join("\n\n");
+      AutoKnowledgeManager.getInstance(this.chainManager.app).maybeExtractSkill(
+        {
+          transcript: skillTranscript,
+          rounds: this.allReasoningSteps.length,
+          toolCalls: toolCallCount,
+        },
+        chatModel
       );
 
       this.lastDisplayedContent = "";
@@ -593,10 +590,16 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
       .map((meta) => `For ${meta.displayName}: ${meta.customPromptInstructions}`)
       .join("\n");
 
+    // Recall RAG-ranked memories + skills learned automatically from past sessions.
+    const knowledgeRecall = await AutoKnowledgeManager.getInstance(
+      this.chainManager.app
+    ).getRecallSection(userMessage.message);
+
     // Combine system message with tool guidelines and agent loop guidance
     const systemContent = [
       systemMessage?.content || "",
       toolInstructions ? `\n## Tool Guidelines\n${toolInstructions}` : "",
+      knowledgeRecall,
       AGENT_LOOP_GUIDANCE,
     ]
       .filter(Boolean)

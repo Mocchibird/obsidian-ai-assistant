@@ -248,7 +248,7 @@ export function LocalServicesSection() {
     {
       id: "lm-studio",
       name: "LM Studio",
-      url: "http://localhost:1234",
+      url: "http://localhost:4000",
       kind: ChatModelProviders.LM_STUDIO,
     },
   ];

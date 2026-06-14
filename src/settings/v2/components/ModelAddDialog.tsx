@@ -33,7 +33,7 @@ import {
 import { useTab } from "@/contexts/TabContext";
 import { logError } from "@/logger";
 import { getSettings } from "@/settings/model";
-import { err2String, getProviderInfo, getProviderLabel, omit } from "@/utils";
+import { err2String, getProviderInfo, getProviderLabel } from "@/utils";
 import { buildCurlCommandForModel } from "@/utils/curlCommand";
 import { CheckCircle2, ChevronDown, Loader2, XCircle } from "lucide-react";
 import { getApiKeyForProvider } from "@/utils/modelUtils";
@@ -68,8 +68,8 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
   const { modalContainer } = useTab();
   const settings = getSettings();
   const defaultProvider = isEmbeddingModel
-    ? EmbeddingModelProviders.OPENAI
-    : ChatModelProviders.OPENROUTERAI;
+    ? EmbeddingModelProviders.OPENAI_FORMAT
+    : ChatModelProviders.OPENAI_FORMAT;
 
   // 判断 Provider 是否有必填的额外设置
   const hasRequiredExtraSettings = (provider: string) => {
@@ -154,7 +154,7 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
       provider,
       enabled: true,
       isBuiltIn: false,
-      baseUrl: "",
+      baseUrl: getProviderInfo(provider).host || "http://localhost:4000/v1",
       apiKey: getApiKeyForProvider(provider as SettingKeyProviders),
       isEmbeddingModel,
       capabilities: [],
@@ -243,6 +243,7 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
       ...model,
       provider,
       apiKey: getApiKeyForProvider(provider as SettingKeyProviders),
+      baseUrl: getProviderInfo(provider).host || "http://localhost:4000/v1",
       ...(provider === ChatModelProviders.OPENAI ? { openAIOrgId: settings.openAIOrgId } : {}),
       ...(provider === ChatModelProviders.AZURE_OPENAI
         ? {
@@ -597,15 +598,13 @@ export const ModelAddDialog: React.FC<ModelAddDialogProps> = ({
                 <SelectValue placeholder="Select provider" />
               </SelectTrigger>
               <SelectContent container={dialogElement}>
-                {Object.values(
-                  isEmbeddingModel
-                    ? omit(EmbeddingModelProviders, ["COPILOT_PLUS", "COPILOT_PLUS_JINA"])
-                    : omit(ChatModelProviders, ["COPILOT_PLUS"])
-                ).map((provider: string) => (
-                  <SelectItem key={provider} value={provider}>
-                    {getProviderLabel(provider)}
-                  </SelectItem>
-                ))}
+                {Object.values(isEmbeddingModel ? EmbeddingModelProviders : ChatModelProviders).map(
+                  (provider: string) => (
+                    <SelectItem key={provider} value={provider}>
+                      {getProviderLabel(provider)}
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
           </FormField>

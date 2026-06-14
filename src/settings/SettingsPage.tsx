@@ -41,7 +41,6 @@ export class CopilotSettingTab extends PluginSettingTab {
       }
 
       // Reload the plugin
-
       const app = this.plugin.app as unknown as {
         plugins: {
           disablePlugin: (id: string) => Promise<void>;

@@ -1,7 +1,6 @@
 import { CustomModel } from "@/aiParams";
 import { SettingItem } from "@/components/ui/setting-item";
 import { useApp } from "@/context";
-import { BUILTIN_CHAT_MODELS, BUILTIN_EMBEDDING_MODELS } from "@/constants";
 import EmbeddingManager from "@/LLMProviders/embeddingManager";
 import ProjectManager from "@/LLMProviders/projectManager";
 import { logError } from "@/logger";
@@ -25,8 +24,6 @@ export const ModelSettings: React.FC = () => {
         "isBuiltIn",
         "core",
         "projectEnabled",
-        "plusExclusive",
-        "believerExclusive",
         "capabilities",
         "displayName",
         "dimensions",
@@ -113,30 +110,6 @@ export const ModelSettings: React.FC = () => {
     updateSetting("activeEmbeddingModels", updatedModels);
   };
 
-  const handleRefreshChatModels = () => {
-    // Get all custom models (non-built-in models)
-    const customModels = settings.activeModels.filter((model) => !model.isBuiltIn);
-
-    // Create a new array with built-in models and custom models
-    const updatedModels = [...BUILTIN_CHAT_MODELS, ...customModels];
-
-    // Update the settings
-    updateSetting("activeModels", updatedModels);
-    new Notice("Chat models refreshed successfully");
-  };
-
-  const handleRefreshEmbeddingModels = () => {
-    // Get all custom models (non-built-in models)
-    const customModels = settings.activeEmbeddingModels.filter((model) => !model.isBuiltIn);
-
-    // Create a new array with built-in models and custom models
-    const updatedModels = [...BUILTIN_EMBEDDING_MODELS, ...customModels];
-
-    // Update the settings
-    updateSetting("activeEmbeddingModels", updatedModels);
-    new Notice("Embedding models refreshed successfully");
-  };
-
   const handleEditModel = (model: CustomModel, isEmbeddingModel: boolean = false) => {
     const modal = new ModelEditModal(app, model, isEmbeddingModel, handleModelUpdate);
     modal.open();
@@ -153,7 +126,6 @@ export const ModelSettings: React.FC = () => {
           onAdd={() => setShowAddDialog(true)}
           onUpdateModel={handleTableUpdate}
           onReorderModels={(newModels) => handleModelReorder(newModels)}
-          onRefresh={handleRefreshChatModels}
           title="Chat Models"
         />
 
@@ -203,7 +175,6 @@ export const ModelSettings: React.FC = () => {
           onAdd={() => setShowAddEmbeddingDialog(true)}
           onUpdateModel={handleEmbeddingModelUpdate}
           onReorderModels={(newModels) => handleModelReorder(newModels, true)}
-          onRefresh={handleRefreshEmbeddingModels}
           title="Embedding Models"
         />
 

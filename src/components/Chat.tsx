@@ -14,6 +14,7 @@ import { resetSessionSystemPromptSettings } from "@/system-prompts";
 import { ChainType } from "@/chainType";
 import { useProjectContextStatus } from "@/hooks/useProjectContextStatus";
 import { logInfo, logError } from "@/logger";
+import { AutoKnowledgeManager } from "@/knowledge/AutoKnowledgeManager";
 import type { WebTabContext } from "@/types/message";
 
 import { ChatControls, reloadCurrentProject } from "@/components/chat-components/ChatControls";
@@ -23,14 +24,7 @@ import { NewVersionBanner } from "@/components/chat-components/NewVersionBanner"
 import { ProjectList } from "@/components/chat-components/ProjectList";
 import IndexingProgressCard from "@/components/IndexingProgressCard";
 import ProgressCard from "@/components/project/progress-card";
-import {
-  ABORT_REASON,
-  AI_SENDER,
-  EVENT_NAMES,
-  LOADING_MESSAGES,
-  RESTRICTION_MESSAGES,
-  USER_SENDER,
-} from "@/constants";
+import { ABORT_REASON, AI_SENDER, EVENT_NAMES, LOADING_MESSAGES, USER_SENDER } from "@/constants";
 import { AppContext, EventTargetContext } from "@/context";
 import { ChatInputProvider, useChatInput } from "@/context/ChatInputContext";
 import { useChatManager } from "@/hooks/useChatManager";
@@ -40,14 +34,13 @@ import ChainManager from "@/LLMProviders/chainManager";
 import { clearRecordedPromptPayload } from "@/LLMProviders/chainRunner/utils/promptPayloadRecorder";
 import { logFileManager } from "@/logFileManager";
 import CopilotPlugin from "@/main";
-import { useIsPlusUser } from "@/plusUtils";
 import { ProjectFileManager } from "@/projects/ProjectFileManager";
 import { useProjects } from "@/projects/state";
 import { useSettingsValue } from "@/settings/model";
 import { ChatUIState } from "@/state/ChatUIState";
 import { FileParserManager } from "@/tools/FileParserManager";
 import { ChatMessage } from "@/types/message";
-import { err2String, isPlusChain } from "@/utils";
+import { err2String } from "@/utils";
 import { arrayBufferToBase64 } from "@/utils/base64";
 import { appendUniqueFiles } from "@/utils/fileListUtils";
 import { Notice, TFile } from "obsidian";
@@ -246,7 +239,6 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
 
   const [previousMode, setPreviousMode] = useState<ChainType | null>(null);
   const [selectedChain, setSelectedChain] = useChainType();
-  const isPlusUser = useIsPlusUser();
 
   const appContext = useContext(AppContext);
   const app = plugin.app || appContext;
@@ -284,14 +276,6 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
     webTabs?: WebTabContext[];
   } = {}) => {
     if (!inputMessage && selectedImages.length === 0) return;
-
-    // Check for URL restrictions in non-Plus chains and show notice, but continue processing
-    const hasUrlsInContext = urls && urls.length > 0;
-
-    if (hasUrlsInContext && !isPlusChain(currentChain)) {
-      // Show notice but continue processing the message without URL context
-      new Notice(RESTRICTION_MESSAGES.URL_PROCESSING_RESTRICTED);
-    }
 
     try {
       // Create message content array
@@ -334,10 +318,10 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
         displayText += " " + toolCalls.join("\n");
       }
 
-      // Create message context - filter out URLs for non-Plus chains
+      // Create message context
       const context = {
         notes,
-        urls: isPlusChain(currentChain) ? urls || [] : [],
+        urls: urls || [],
         tags: contextTags || [],
         folders: contextFolders || [],
         selectedTextContexts,
@@ -682,6 +666,17 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
       }
     }
 
+    // Automatically extract durable memories from the conversation (gated by enableAutoMemory).
+    try {
+      const chatModel = chainManager.chatModelManager.getChatModel();
+      AutoKnowledgeManager.getInstance(plugin.app).maybeExtractMemory(
+        chatUIState.getMessages(),
+        chatModel
+      );
+    } catch (error) {
+      logInfo("Failed to run automatic memory extraction:", error);
+    }
+
     // First autosave the current chat if the setting is enabled
     if (settings.autosaveChat) {
       await handleSaveAsNote();
@@ -959,10 +954,8 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
                     setSelectedChain(previousMode);
                     setPreviousMode(null);
                   } else {
-                    // default back to chat or plus mode
-                    setSelectedChain(
-                      isPlusUser ? ChainType.COPILOT_PLUS_CHAIN : ChainType.LLM_CHAIN
-                    );
+                    // default back to plus mode
+                    setSelectedChain(ChainType.COPILOT_PLUS_CHAIN);
                   }
                 }}
                 showChatUI={(v) => setShowChatUI(v)}

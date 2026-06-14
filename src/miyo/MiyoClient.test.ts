@@ -44,10 +44,10 @@ describe("MiyoClient", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGetSettings.mockReturnValue({
-      plusLicenseKey: "plus-test-license",
+      selfHostApiKey: "selfhost-test-key",
       debug: false,
     } as CopilotSettings);
-    mockedGetDecryptedKey.mockResolvedValue("plus-test-license");
+    mockedGetDecryptedKey.mockResolvedValue("selfhost-test-key");
     mockResolveBaseUrl.mockResolvedValue("http://127.0.0.1:8742");
     mockedGetInstance.mockReturnValue({
       resolveBaseUrl: mockResolveBaseUrl,
@@ -82,7 +82,7 @@ describe("MiyoClient", () => {
         url: "http://127.0.0.1:8742/v0/parse-doc",
         method: "POST",
         headers: {
-          Authorization: "Bearer plus-test-license",
+          Authorization: "Bearer selfhost-test-key",
         },
         contentType: "application/json",
         body: JSON.stringify({ folder_name: "TestVault", path: "docs/sample.pdf" }),

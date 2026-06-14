@@ -72,20 +72,21 @@ Paste a URL or type `@https://...` to fetch and include a web page's content:
 @https://example.com/article summarize this article
 ```
 
-URL processing requires Copilot Plus. YouTube URLs are handled specially — Copilot will fetch the video transcript automatically.
+URL processing is available in Agent mode. YouTube URLs are handled specially — Copilot will fetch the video transcript automatically.
 
 ### Tool Mentions
 
-These special @-mentions explicitly trigger tools in Copilot Plus mode:
+These special @-mentions explicitly trigger tools in Agent mode:
 
-| Mention | What it does |
-|---|---|
-| `@vault` | Search your vault notes for relevant information |
-| `@websearch` or `@web` | Search the internet |
-| `@composer` | Create or edit a note |
-| `@memory` | Access or update your memory |
+| Mention                | What it does                                     |
+| ---------------------- | ------------------------------------------------ |
+| `@vault`               | Search your vault notes for relevant information |
+| `@websearch` or `@web` | Search the internet                              |
+| `@composer`            | Create or edit a note                            |
+| `@memory`              | Access or update your memory                     |
 
 Example:
+
 ```
 @vault what did I write about machine learning last month?
 @websearch what are the latest changes to the Python packaging ecosystem?
@@ -107,7 +108,7 @@ Use the command palette: **Add web selection to chat context**
 
 Works similarly but captures selected text from the Web Viewer. Available on desktop only.
 
-### Adding a PDF as Context (Copilot Plus)
+### Adding a PDF as Context (Agent mode)
 
 Click the **+ Add context** button above the chat input to attach a PDF file. The PDF is converted to text and included as context for your message.
 
@@ -125,16 +126,16 @@ When context items are added to your message, Copilot shows small pills or badge
 
 ## Context Behavior by Mode
 
-| Context Type | Chat | Vault QA | Copilot Plus |
-|---|---|---|---|
-| Active note | Yes (auto) | Yes (auto) | Yes (auto) |
-| Selected text | Yes (auto) | Yes (auto) | Yes (auto) |
-| @note / @folder | Yes | Yes | Yes |
-| @URL processing | Copilot Plus only | Copilot Plus only | Yes |
-| @vault search | Yes (explicit) | Auto | Auto |
-| @websearch | No | No | Yes |
-| Images (vision) | Yes | Yes | Yes |
-| Active web tab | Desktop only | Desktop only | Desktop only |
+| Context Type    | Chat           | Vault QA     | Agent        |
+| --------------- | -------------- | ------------ | ------------ |
+| Active note     | Yes (auto)     | Yes (auto)   | Yes (auto)   |
+| Selected text   | Yes (auto)     | Yes (auto)   | Yes (auto)   |
+| @note / @folder | Yes            | Yes          | Yes          |
+| @URL processing | Agent only     | Agent only   | Yes          |
+| @vault search   | Yes (explicit) | Auto         | Auto         |
+| @websearch      | No             | No           | Yes          |
+| Images (vision) | Yes            | Yes          | Yes          |
+| Active web tab  | Desktop only   | Desktop only | Desktop only |
 
 ---
 

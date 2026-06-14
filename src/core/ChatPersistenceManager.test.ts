@@ -1436,10 +1436,10 @@ tags:
       mockMessageRepo.getDisplayMessages.mockReturnValue(messages);
       mockApp.vault.getAbstractFileByPath.mockReturnValue(true);
 
-      await persistenceManager.saveChat("copilot-plus-flash|copilot-plus");
+      await persistenceManager.saveChat("gpt-4o-mini|openai");
 
       const savedContent = mockApp.vault.create.mock.calls[0][1] as string;
-      expect(savedContent).toContain('modelKey: "copilot-plus-flash|copilot-plus"');
+      expect(savedContent).toContain('modelKey: "gpt-4o-mini|openai"');
     });
 
     it("should properly escape modelKey with embedded quotes", async () => {

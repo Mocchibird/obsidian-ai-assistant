@@ -14,12 +14,10 @@ import {
 import { NotePreviewCache } from "@/components/chat-components/utils/notePreviewUtils";
 
 interface NoteCommandPluginProps {
-  isCopilotPlus?: boolean;
   currentActiveFile?: TFile | null;
 }
 
 export function NoteCommandPlugin({
-  isCopilotPlus = false,
   currentActiveFile = null,
 }: NoteCommandPluginProps): JSX.Element {
   const [editor] = useLexicalComposerContext();
@@ -54,7 +52,7 @@ export function NoteCommandPlugin({
   );
 
   // Use unified note search hook with standard configuration
-  const searchResults = useNoteSearch(currentQuery, isCopilotPlus, {}, currentActiveFile);
+  const searchResults = useNoteSearch(currentQuery, {}, currentActiveFile);
 
   // Add preview content from cache to the results
   const filteredNotes = searchResults.map((note) => ({

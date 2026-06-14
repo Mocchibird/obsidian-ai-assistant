@@ -1,5 +1,4 @@
 // DEPRECATED: Legacy hybrid retriever backed by Orama. Replaced by v3 TieredLexicalRetriever + MemoryIndexManager.
-import { BrevilabsClient } from "@/LLMProviders/brevilabsClient";
 import EmbeddingManager from "@/LLMProviders/embeddingManager";
 import { logInfo } from "@/logger";
 import VectorStoreManager from "@/search/vectorStoreManager";
@@ -63,31 +62,7 @@ export class HybridRetriever extends BaseRetriever {
         const isValidScore = typeof score === "number" && !isNaN(score);
         return isValidScore ? Math.max(max, score) : max;
       }, 0);
-
-      const allScoresAreNaN = combinedChunks.every(
-        (chunk) => typeof chunk.metadata.score !== "number" || isNaN(chunk.metadata.score)
-      );
-
-      const shouldRerank =
-        this.options.useRerankerThreshold &&
-        (maxOramaScore < this.options.useRerankerThreshold || allScoresAreNaN);
-      // Apply reranking if max score is below the threshold or all scores are NaN
-      if (shouldRerank) {
-        const rerankResponse = await BrevilabsClient.getInstance().rerank(
-          query,
-          // Limit the context length to 3000 characters to avoid overflowing the reranker
-          combinedChunks.map((doc) => doc.pageContent.slice(0, 3000))
-        );
-
-        // Map chunks based on reranked scores and include rerank_score in metadata
-        finalChunks = rerankResponse.response.data.map((item) => ({
-          ...combinedChunks[item.index],
-          metadata: {
-            ...combinedChunks[item.index].metadata,
-            rerank_score: item.relevance_score,
-          },
-        }));
-      }
+      finalChunks = combinedChunks;
 
       if (getSettings().debug) {
         logInfo("*** HYBRID RETRIEVER DEBUG INFO: ***");
@@ -95,11 +70,7 @@ export class HybridRetriever extends BaseRetriever {
         logInfo("Orama Chunks: ", oramaChunks);
         logInfo("Combined Chunks: ", combinedChunks);
         logInfo("Max Orama Score: ", maxOramaScore);
-        if (shouldRerank) {
-          logInfo("Reranked Chunks: ", finalChunks);
-        } else {
-          logInfo("No reranking applied.");
-        }
+        logInfo("No reranking applied.");
       }
 
       return finalChunks;

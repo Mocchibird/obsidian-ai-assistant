@@ -6,8 +6,6 @@ import { type ChainType } from "@/chainType";
 import { type SortStrategy, isSortStrategy } from "@/utils/recentUsageManager";
 import {
   AGENT_MAX_ITERATIONS_LIMIT,
-  BUILTIN_CHAT_MODELS,
-  BUILTIN_EMBEDDING_MODELS,
   COPILOT_FOLDER_ROOT,
   DEFAULT_OPEN_AREA,
   DEFAULT_QA_EXCLUSIONS_SETTING,
@@ -47,7 +45,6 @@ export interface LegacyCommandSettings {
 
 export interface CopilotSettings {
   userId: string;
-  plusLicenseKey: string;
   openAIApiKey: string;
   openAIOrgId: string;
   huggingfaceApiKey: string;
@@ -121,8 +118,6 @@ export interface CopilotSettings {
   showRelevantNotes: boolean;
   numPartitions: number;
   defaultConversationNoteName: string;
-  // undefined means never checked
-  isPlusUser: boolean | undefined;
   inlineEditCommands: LegacyCommandSettings[] | undefined;
   projectList: Array<ProjectConfig>;
   passMarkdownImages: boolean;
@@ -136,10 +131,6 @@ export interface CopilotSettings {
   enableMiyo: boolean;
   /** When true, omit folder_name from Miyo search requests so all indexed content is searched */
   miyoSearchAll: boolean;
-  /** Timestamp of last successful Believer validation for self-host mode (null if never validated) */
-  selfHostModeValidatedAt: number | null;
-  /** Count of successful periodic validations (3 = permanently valid) */
-  selfHostValidationCount: number;
   /** URL endpoint for the self-host mode backend */
   selfHostUrl: string;
   /** API key for the self-host mode backend (if required) */
@@ -179,6 +170,14 @@ export interface CopilotSettings {
   maxRecentConversations: number;
   /** Reference saved memories that user explicitly asked to remember */
   enableSavedMemory: boolean;
+  /** Automatically extract durable personal facts from conversations into the Memory folder */
+  enableAutoMemory: boolean;
+  /** Vault folder where automatically created memory notes are stored */
+  autoMemoryFolder: string;
+  /** Automatically extract reusable skills from complex agent runs into the Skills folder */
+  enableAutoSkillCreation: boolean;
+  /** Vault folder where automatically created skill notes are stored */
+  skillsFolder: string;
   /** Last selected model for quick command */
   quickCommandModelKey: string | undefined;
   /** Last checkbox state for including note context in quick command */
@@ -315,12 +314,7 @@ export function getSettings(): Readonly<CopilotSettings> {
  * If a future review flags this again, point them at this note.
  */
 export function resetSettings(): void {
-  const defaultSettingsWithBuiltIns = {
-    ...DEFAULT_SETTINGS,
-    activeModels: BUILTIN_CHAT_MODELS.map((model) => ({ ...model, enabled: true })),
-    activeEmbeddingModels: BUILTIN_EMBEDDING_MODELS.map((model) => ({ ...model, enabled: true })),
-  };
-  setSettings(defaultSettingsWithBuiltIns);
+  setSettings(DEFAULT_SETTINGS);
 }
 
 /**
@@ -374,21 +368,28 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
     settingsToSanitize.userId = uuidv4();
   }
 
-  // fix: Maintain consistency between EmbeddingModelProviders.AZURE_OPENAI and ChatModelProviders.AZURE_OPENAI,
-  // where it was 'azure_openai' before EmbeddingModelProviders.AZURE_OPENAI.
-  if (!settingsToSanitize.activeEmbeddingModels) {
-    settingsToSanitize.activeEmbeddingModels = BUILTIN_EMBEDDING_MODELS.map((model) => ({
-      ...model,
-      enabled: true,
-    }));
+  if (!Array.isArray(settingsToSanitize.activeModels)) {
+    settingsToSanitize.activeModels = [];
+  }
+
+  if (!Array.isArray(settingsToSanitize.activeEmbeddingModels)) {
+    settingsToSanitize.activeEmbeddingModels = [];
   } else {
-    settingsToSanitize.activeEmbeddingModels = settingsToSanitize.activeEmbeddingModels.map((m) => {
-      return {
+    // fix: Maintain consistency between EmbeddingModelProviders.AZURE_OPENAI and
+    // ChatModelProviders.AZURE_OPENAI, where it was 'azure_openai' before.
+    settingsToSanitize.activeEmbeddingModels = settingsToSanitize.activeEmbeddingModels.map(
+      (m) => ({
         ...m,
         provider: normalizeModelProvider(m.provider),
-      };
-    });
+      })
+    );
   }
+  settingsToSanitize.activeModels = settingsToSanitize.activeModels.filter(
+    (model) => !model.isBuiltIn && !model.core
+  );
+  settingsToSanitize.activeEmbeddingModels = settingsToSanitize.activeEmbeddingModels.filter(
+    (model) => !model.isBuiltIn && !model.core
+  );
 
   const sanitizedSettings: CopilotSettings = { ...settingsToSanitize };
   const sanitizedSettingsRecord = sanitizedSettings as unknown as Record<string, unknown>;
@@ -544,6 +545,23 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
     sanitizedSettings.enableSavedMemory = DEFAULT_SETTINGS.enableSavedMemory;
   }
 
+  // Ensure automatic knowledge (memory + skills) settings have valid values
+  if (typeof sanitizedSettings.enableAutoMemory !== "boolean") {
+    sanitizedSettings.enableAutoMemory = DEFAULT_SETTINGS.enableAutoMemory;
+  }
+  if (
+    !sanitizedSettings.autoMemoryFolder ||
+    typeof sanitizedSettings.autoMemoryFolder !== "string"
+  ) {
+    sanitizedSettings.autoMemoryFolder = DEFAULT_SETTINGS.autoMemoryFolder;
+  }
+  if (typeof sanitizedSettings.enableAutoSkillCreation !== "boolean") {
+    sanitizedSettings.enableAutoSkillCreation = DEFAULT_SETTINGS.enableAutoSkillCreation;
+  }
+  if (!sanitizedSettings.skillsFolder || typeof sanitizedSettings.skillsFolder !== "string") {
+    sanitizedSettings.skillsFolder = DEFAULT_SETTINGS.skillsFolder;
+  }
+
   // Ensure maxRecentConversations has a valid value (10-50 range)
   const maxRecentConversations = Number(settingsToSanitize.maxRecentConversations);
   if (isNaN(maxRecentConversations) || maxRecentConversations < 10 || maxRecentConversations > 50) {
@@ -654,9 +672,9 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
 }
 
 function mergeAllActiveModelsWithCoreModels(settings: CopilotSettings): CopilotSettings {
-  settings.activeModels = mergeActiveModels(settings.activeModels, BUILTIN_CHAT_MODELS);
+  settings.activeModels = Array.isArray(settings.activeModels) ? settings.activeModels : [];
   settings.activeEmbeddingModels = filterUnsupportedEmbeddingModels(
-    mergeActiveModels(settings.activeEmbeddingModels, BUILTIN_EMBEDDING_MODELS)
+    Array.isArray(settings.activeEmbeddingModels) ? settings.activeEmbeddingModels : []
   );
   return settings;
 }
@@ -668,50 +686,6 @@ function mergeAllActiveModelsWithCoreModels(settings: CopilotSettings): CopilotS
 export function getModelKeyFromModel(model: CustomModel): string {
   return `${model.name}|${model.provider}`;
 }
-
-function mergeActiveModels(
-  existingActiveModels: CustomModel[],
-  builtInModels: CustomModel[]
-): CustomModel[] {
-  const modelMap = new Map<string, CustomModel>();
-
-  // Add core models to the map first
-  builtInModels
-    .filter((model) => model.core)
-    .forEach((model) => {
-      modelMap.set(getModelKeyFromModel(model), { ...model });
-    });
-
-  // Add or update existing models in the map
-  existingActiveModels.forEach((model) => {
-    const key = getModelKeyFromModel(model);
-    const existingModel = modelMap.get(key);
-    if (existingModel) {
-      // If it's a built-in model, preserve all built-in properties
-      const builtInModel = builtInModels.find(
-        (m) => m.name === model.name && m.provider === model.provider
-      );
-      if (builtInModel) {
-        modelMap.set(key, {
-          ...builtInModel,
-          ...model,
-          isBuiltIn: true,
-          believerExclusive: builtInModel.believerExclusive,
-        });
-      } else {
-        modelMap.set(key, {
-          ...model,
-          isBuiltIn: existingModel.isBuiltIn,
-        });
-      }
-    } else {
-      modelMap.set(key, model);
-    }
-  });
-
-  return Array.from(modelMap.values());
-}
-
 /**
  * Remove embedding models that use unsupported providers.
  *

@@ -1,6 +1,6 @@
 import { getChainType, getCurrentProject, getModelKey, SetChainOptions } from "@/aiParams";
 import { ChainType } from "@/chainType";
-import { BUILTIN_CHAT_MODELS, USER_SENDER } from "@/constants";
+import { USER_SENDER } from "@/constants";
 import {
   AutonomousAgentChainRunner,
   ChainRunner,
@@ -110,12 +110,15 @@ export default class ChainManager {
       if (neededReInitChatMode) {
         let customModel = findCustomModel(newModelKey, getSettings().activeModels);
         if (!customModel) {
-          // Reset default model if no model is found
-          console.error("Resetting default model. No model configuration found for: ", newModelKey);
-          customModel = BUILTIN_CHAT_MODELS[0];
-          newModelKey = customModel.name + "|" + customModel.provider;
+          const fallbackModel = getSettings().activeModels.find((model) => model.enabled);
+          if (!fallbackModel) {
+            throw new MissingModelKeyError(
+              "No valid model is configured. Add a model in Settings → Copilot → Model settings."
+            );
+          }
+          customModel = fallbackModel;
+          newModelKey = `${fallbackModel.name}|${fallbackModel.provider}`;
         }
-
         // Add validation for project mode
         if (chainType === ChainType.PROJECT_CHAIN && !customModel.projectEnabled) {
           // If the model is not project-enabled, find the first project-enabled model
@@ -144,12 +147,11 @@ export default class ChainManager {
       }
 
       // Chain-type housekeeping. Do NOT write `chainType` back to the atom —
-      // the atom is owned by the UI dropdowns and `applyPlusSettings`. The
-      // captured local `chainType` may already be stale by the time we reach
-      // here (we just awaited `setChatModel(...)`), and writing it back used
-      // to create a self-sustaining `setChainType` → ProjectManager
-      // subscriber → `createChainWithNewModel` loop that froze Obsidian on
-      // apply-Plus-key.
+      // the atom is owned by the UI dropdowns. The captured local `chainType`
+      // may already be stale by the time we reach here (we just awaited
+      // `setChatModel(...)`), and writing it back used to create a
+      // self-sustaining `setChainType` → ProjectManager subscriber →
+      // `createChainWithNewModel` loop that froze Obsidian.
       if (this.chatModelManager.validateChatModel(this.chatModelManager.getChatModel())) {
         this.validateChainType(chainType);
         if (options.refreshIndex) {

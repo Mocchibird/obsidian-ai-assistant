@@ -1,14 +1,7 @@
 import { ImageProcessor } from "@/imageProcessing/imageProcessor";
-import {
-  BrevilabsClient,
-  Twitter4llmResponse,
-  Url4llmResponse,
-} from "@/LLMProviders/brevilabsClient";
 import { selfHostYoutube4llm } from "@/LLMProviders/selfHostServices";
 import { err2String, isTwitterUrl, isYoutubeUrl } from "@/utils";
 import { logError } from "@/logger";
-import { isSelfHostModeValid } from "@/plusUtils";
-import { getSettings } from "@/settings/model";
 
 export interface MentionData {
   type: string;
@@ -20,11 +13,9 @@ export interface MentionData {
 export class Mention {
   private static instance: Mention;
   private mentions: Map<string, MentionData>;
-  private brevilabsClient: BrevilabsClient;
 
   private constructor() {
     this.mentions = new Map();
-    this.brevilabsClient = BrevilabsClient.getInstance();
   }
 
   static getInstance(): Mention {
@@ -49,9 +40,15 @@ export class Mention {
       .filter((url, index, self) => self.indexOf(url) === index);
   }
 
-  async processUrl(url: string): Promise<Url4llmResponse & { error?: string }> {
+  /** Fetch URL content via basic HTTP request. */
+  async processUrl(
+    url: string
+  ): Promise<{ response: string; elapsed_time_ms: number; error?: string }> {
     try {
-      return await this.brevilabsClient.url4llm(url);
+      const start = Date.now();
+      const response = await fetch(url);
+      const text = await response.text();
+      return { response: text, elapsed_time_ms: Date.now() - start };
     } catch (error) {
       const msg = err2String(error);
       logError(`Error processing URL ${url}: ${msg}`);
@@ -59,12 +56,10 @@ export class Mention {
     }
   }
 
+  /** Fetch YouTube transcript via self-host service. */
   async processYoutubeUrl(url: string): Promise<{ transcript: string; error?: string }> {
     try {
-      const response =
-        isSelfHostModeValid() && getSettings().supadataApiKey
-          ? await selfHostYoutube4llm(url)
-          : await this.brevilabsClient.youtube4llm(url);
+      const response = await selfHostYoutube4llm(url);
       return { transcript: response.response.transcript };
     } catch (error) {
       const msg = err2String(error);
@@ -73,14 +68,15 @@ export class Mention {
     }
   }
 
-  async processTwitterUrl(url: string): Promise<Twitter4llmResponse & { error?: string }> {
-    try {
-      return await this.brevilabsClient.twitter4llm(url);
-    } catch (error) {
-      const msg = err2String(error);
-      logError(`Error processing Twitter URL ${url}: ${msg}`);
-      return { response: url, elapsed_time_ms: 0, error: msg };
-    }
+  /** Twitter content extraction is no longer available. */
+  async processTwitterUrl(
+    url: string
+  ): Promise<{ response: string; elapsed_time_ms: number; error?: string }> {
+    return {
+      response: url,
+      elapsed_time_ms: 0,
+      error: "Twitter content extraction is not available. Share the tweet content directly.",
+    };
   }
 
   /**

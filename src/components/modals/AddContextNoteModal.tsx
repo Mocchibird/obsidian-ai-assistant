@@ -1,8 +1,6 @@
-import { App, FuzzyMatch, TFile, Notice } from "obsidian";
+import { App, FuzzyMatch, TFile } from "obsidian";
 import { BaseNoteModal } from "./BaseNoteModal";
 import { ChainType } from "@/chainType";
-import { isAllowedFileForChainContext } from "@/utils";
-import { RESTRICTION_MESSAGES } from "@/constants";
 
 interface AddContextNoteModalProps {
   app: App;
@@ -21,7 +19,7 @@ export class AddContextNoteModal extends BaseNoteModal<TFile> {
     onNoteSelect,
     excludeNotePaths,
     titleOnly = false,
-    chainType = ChainType.COPILOT_PLUS_CHAIN,
+    chainType = ChainType.LLM_CHAIN,
   }: AddContextNoteModalProps) {
     super(app, chainType);
     this.onNoteSelect = onNoteSelect;
@@ -47,11 +45,7 @@ export class AddContextNoteModal extends BaseNoteModal<TFile> {
   }
 
   onChooseItem(note: TFile, evt: MouseEvent | KeyboardEvent) {
-    // Check if the file is allowed for the current chain type
-    if (!isAllowedFileForChainContext(note, this.chainType)) {
-      new Notice(RESTRICTION_MESSAGES.NON_MARKDOWN_FILES_RESTRICTED);
-      return;
-    }
+    this.onNoteSelect(note);
 
     this.onNoteSelect(note);
   }

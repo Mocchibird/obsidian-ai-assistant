@@ -1,4 +1,3 @@
-import { BrevilabsClient } from "@/LLMProviders/brevilabsClient";
 import ProjectManager from "@/LLMProviders/projectManager";
 import {
   CustomModel,
@@ -22,6 +21,7 @@ import { ABORT_REASON, CHAT_VIEWTYPE, DEFAULT_OPEN_AREA, EVENT_NAMES } from "@/c
 import { ChatManager } from "@/core/ChatManager";
 import { MessageRepository } from "@/core/MessageRepository";
 import { logError, logInfo, logWarn } from "@/logger";
+import { AutoKnowledgeManager } from "@/knowledge/AutoKnowledgeManager";
 import { logFileManager } from "@/logFileManager";
 import { KeychainService } from "@/services/keychainService";
 import {
@@ -32,7 +32,6 @@ import {
 } from "@/services/settingsPersistence";
 import { UserMemoryManager } from "@/memory/UserMemoryManager";
 import { clearRecordedPromptPayload } from "@/LLMProviders/chainRunner/utils/promptPayloadRecorder";
-import { checkIsPlusUser, refreshSelfHostModeValidation } from "@/plusUtils";
 import {
   getWebViewerService,
   startActiveWebTabTracking,
@@ -87,7 +86,6 @@ import { v4 as uuidv4 } from "uuid";
 export default class CopilotPlugin extends Plugin {
   // Plugin components
   projectManager: ProjectManager;
-  brevilabsClient: BrevilabsClient;
   userMessageHistory: string[] = [];
   vectorStoreManager: VectorStoreManager;
   fileParserManager: FileParserManager;
@@ -142,12 +140,6 @@ export default class CopilotPlugin extends Plugin {
     // Initialize built-in tools with vault access
     initializeBuiltinTools(this.app.vault);
 
-    // Initialize BrevilabsClient
-    this.brevilabsClient = BrevilabsClient.getInstance();
-    this.brevilabsClient.setPluginVersion(this.manifest.version);
-    void checkIsPlusUser();
-    void refreshSelfHostModeValidation();
-
     // Initialize ProjectManager
     this.projectManager = ProjectManager.getInstance(this.app, this);
 
@@ -160,7 +152,7 @@ export default class CopilotPlugin extends Plugin {
     vaultDataManager.initialize();
 
     // Initialize FileParserManager early with other core services
-    this.fileParserManager = new FileParserManager(this.brevilabsClient, this.app.vault);
+    this.fileParserManager = new FileParserManager(this.app.vault);
 
     // Initialize ChatUIState with new architecture
     const messageRepo = new MessageRepository();
@@ -308,6 +300,9 @@ export default class CopilotPlugin extends Plugin {
     } catch {
       // Ignore errors if service not available
     }
+
+    // Reset the automatic knowledge singleton so it rebinds to a fresh app on reload
+    AutoKnowledgeManager.reset();
 
     // Best-effort flush of log file
     await logFileManager.flush();
@@ -906,6 +901,18 @@ export default class CopilotPlugin extends Plugin {
       } catch (error) {
         logInfo("Failed to analyze chat messages for memory:", error);
       }
+    }
+
+    // Automatically extract durable memories from the conversation (gated by enableAutoMemory).
+    try {
+      const chainManager = this.projectManager.getCurrentChainManager();
+      const chatModel = chainManager.chatModelManager.getChatModel();
+      AutoKnowledgeManager.getInstance(this.app).maybeExtractMemory(
+        this.chatUIState.getMessages(),
+        chatModel
+      );
+    } catch (error) {
+      logInfo("Failed to run automatic memory extraction:", error);
     }
 
     // First autosave the current chat if the setting is enabled

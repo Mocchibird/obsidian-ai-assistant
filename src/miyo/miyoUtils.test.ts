@@ -1,7 +1,3 @@
-jest.mock("@/plusUtils", () => ({
-  isSelfHostAccessValid: jest.fn(),
-}));
-
 import type { App } from "obsidian";
 import { getMiyoFilePath, getMiyoFolderName, getVaultRelativeMiyoPath } from "@/miyo/miyoUtils";
 

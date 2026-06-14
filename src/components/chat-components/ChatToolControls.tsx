@@ -11,7 +11,6 @@ import {
 import { ChainType } from "@/chainType";
 import { cn } from "@/lib/utils";
 import { updateSetting } from "@/settings/model";
-import { isPlusChain } from "@/utils";
 
 interface ChatToolControlsProps {
   // Tool toggle states
@@ -47,8 +46,7 @@ const ChatToolControls: React.FC<ChatToolControlsProps> = ({
   onComposerToggleOff,
   currentChain,
 }) => {
-  const isCopilotPlus = isPlusChain(currentChain);
-  const showAutonomousAgent = isCopilotPlus && currentChain !== ChainType.PROJECT_CHAIN;
+  const showAutonomousAgent = currentChain !== ChainType.PROJECT_CHAIN;
 
   const handleAutonomousAgentToggle = () => {
     const newValue = !autonomousAgentToggle;
@@ -83,16 +81,11 @@ const ChatToolControls: React.FC<ChatToolControlsProps> = ({
     }
   };
 
-  // If not Copilot Plus, don't show any tools
-  if (!isCopilotPlus) {
-    return null;
-  }
-
   return (
     <TooltipProvider delayDuration={0}>
       {/* Desktop view - show all icons when container is wide enough */}
       <div className="tw-hidden tw-items-center tw-gap-1.5 @[420px]/chat-input:tw-flex">
-        {/* Autonomous Agent button - only show in Copilot Plus mode and NOT in Projects mode */}
+        {/* Autonomous Agent button - hidden in Projects mode */}
         {showAutonomousAgent && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -183,7 +176,7 @@ const ChatToolControls: React.FC<ChatToolControlsProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="tw-w-56">
-            {/* Autonomous Agent option - only show in Copilot Plus mode and NOT in Projects mode */}
+            {/* Autonomous Agent option - hidden in Projects mode */}
             {showAutonomousAgent && (
               <DropdownMenuItem
                 onClick={handleAutonomousAgentToggle}

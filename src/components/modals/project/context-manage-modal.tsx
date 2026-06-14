@@ -629,7 +629,7 @@ function ContextManage({ initialProject, onSave, onCancel, app }: ContextManageP
 
   // ignore file items convert to exclusions format
   const convertDeletedItemsToExclusions = useCallback((items: IgnoreItems): string => {
-    const notePatterns = new Array(...items.files).map((file) => getFilePattern(file));
+    const notePatterns = [...items.files].map((file) => getFilePattern(file));
 
     return createPatternSettingsValue({ notePatterns: notePatterns }) || "";
   }, []);

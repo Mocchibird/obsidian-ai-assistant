@@ -152,7 +152,7 @@ The memory system behaves differently depending on which chat mode is active:
 - **Memory Retrieval**: ✅ Full access to both Recent Conversations and Saved Memories via system prompt
 - **Memory Saving**: ✅ Access to `@memory`
 - **Behavior**:
-  - Uses Brevilabs API intent analysis to determine when to call memory tools
+  - Uses intent analysis to determine when to call memory tools
   - Intent analyzer processes user message and decides which tools to execute
   - Tools are executed before LLM response generation
   - Memory tool calls are pre-determined rather than AI-reasoned

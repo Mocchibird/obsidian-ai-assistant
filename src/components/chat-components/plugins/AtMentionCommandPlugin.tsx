@@ -16,12 +16,10 @@ import { useAtMentionSearch } from "../hooks/useAtMentionSearch";
 declare const app: App;
 
 interface AtMentionCommandPluginProps {
-  isCopilotPlus?: boolean;
   currentActiveFile?: TFile | null;
 }
 
 export function AtMentionCommandPlugin({
-  isCopilotPlus = false,
   currentActiveFile = null,
 }: AtMentionCommandPluginProps): JSX.Element {
   const [editor] = useLexicalComposerContext();
@@ -36,7 +34,7 @@ export function AtMentionCommandPlugin({
   const [currentPreviewContent, setCurrentPreviewContent] = useState<string>("");
 
   // Use the shared at-mention categories hook
-  const availableCategoryOptions = useAtMentionCategories(isCopilotPlus);
+  const availableCategoryOptions = useAtMentionCategories();
 
   // Load note content for preview using shared utilities
   const loadNoteContentForPreview = useCallback(async (file: TFile | null) => {
@@ -72,7 +70,6 @@ export function AtMentionCommandPlugin({
     currentQuery,
     extendedState.mode,
     extendedState.selectedCategory,
-    isCopilotPlus,
     availableCategoryOptions,
     currentActiveFile
   );

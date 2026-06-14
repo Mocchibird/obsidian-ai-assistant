@@ -249,7 +249,7 @@ Copilot never needs to bridge or proxy these. The agent calls them directly.
 
 - Skills are context, not tools. Copilot provides them. The agent acts on them.
 - This keeps the ACP path clean — no client-side tool execution, no LangChain coupling.
-- Analogous to how Claude Code reads CLAUDE.md files for project-specific instructions.
+- Analogous to how coding agents read AGENTS.md files for project-specific instructions.
 
 ## 7. Agent and Session State
 

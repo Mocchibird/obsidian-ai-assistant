@@ -628,13 +628,13 @@ class CopilotPlusModelAdapter extends BaseModelAdapter {
     );
 
     sections.push({
-      id: "copilot-plus-guidelines",
-      label: "Copilot Plus model guidance",
+      id: "agent-guidelines",
+      label: "Agent model guidance",
       source:
         "src/LLMProviders/chainRunner/utils/modelAdapter.ts#CopilotPlusModelAdapter.buildSystemPromptSections",
       content: `🚨 CRITICAL: NO HALLUCINATED TOOL CALLS OR SOURCES 🚨
 
-You are a Copilot Plus model. You MUST follow these rules strictly:
+You are an AI agent. You MUST follow these rules strictly:
 
 ## Tool Call Integrity
 - You can ONLY reference results from tools you have ACTUALLY called in this conversation
@@ -706,7 +706,7 @@ export class ModelAdapterFactory {
       return new GeminiModelAdapter(modelName);
     }
 
-    // Copilot Plus models (Flash-based, needs anti-hallucination guidance)
+    // Agent models (Flash-based, needs anti-hallucination guidance)
     if (modelName.includes("copilot-plus")) {
       logInfo("Using CopilotPlusModelAdapter");
       return new CopilotPlusModelAdapter(modelName);

@@ -1,11 +1,9 @@
-import { BrevilabsClient } from "@/LLMProviders/brevilabsClient";
 import { ProjectConfig } from "@/aiParams";
 import { PDFCache } from "@/cache/pdfCache";
 import { ProjectContextCache } from "@/cache/projectContextCache";
 import { logError, logInfo, logWarn } from "@/logger";
 import { MiyoClient } from "@/miyo/MiyoClient";
 import { getMiyoCustomUrl } from "@/miyo/miyoUtils";
-import { isSelfHostModeValid } from "@/plusUtils";
 import { getSettings } from "@/settings/model";
 import { saveConvertedDocOutput as saveConvertedDocOutputCore } from "@/utils/convertedDocOutput";
 import { extractRetryTime, isRateLimitError } from "@/utils/rateLimitUtils";
@@ -86,12 +84,10 @@ class MarkdownParser implements FileParser {
 
 class PDFParser implements FileParser {
   supportedExtensions = ["pdf"];
-  private brevilabsClient: BrevilabsClient;
   private pdfCache: PDFCache;
   private selfHostPdfParser: SelfHostPdfParser;
 
-  constructor(brevilabsClient: BrevilabsClient) {
-    this.brevilabsClient = brevilabsClient;
+  constructor() {
     this.pdfCache = PDFCache.getInstance();
     this.selfHostPdfParser = new SelfHostPdfParser();
   }
@@ -110,7 +106,7 @@ class PDFParser implements FileParser {
       }
 
       const settings = getSettings();
-      if (isSelfHostModeValid() && settings.enableMiyo && file.extension.toLowerCase() === "pdf") {
+      if (settings.enableMiyo && file.extension.toLowerCase() === "pdf") {
         const miyoResult = await this.selfHostPdfParser.parsePdf(file, vault);
         if (miyoResult && "content" in miyoResult) {
           await this.pdfCache.set(file, {
@@ -122,19 +118,23 @@ class PDFParser implements FileParser {
         }
 
         if (miyoResult && "error" in miyoResult) {
-          // Self-host mode: do NOT fall back to cloud API to preserve privacy.
           logWarn(`[PDFParser] Miyo parse failed for ${file.path}: ${miyoResult.error}`);
-          return `[Error: Could not extract content from PDF ${file.basename}. ${miyoResult.error}]`;
+          // Fall through to SelfHostPdfParser direct attempt
         }
       }
 
-      // If not in cache, read the file and call the API
-      const binaryContent = await vault.readBinary(file);
-      logInfo("Calling pdf4llm API for:", file.path);
-      const pdf4llmResponse = await this.brevilabsClient.pdf4llm(binaryContent);
-      await this.pdfCache.set(file, pdf4llmResponse);
-      await saveConvertedDocOutput(file, pdf4llmResponse.response, vault);
-      return pdf4llmResponse.response;
+      // Try direct SelfHostPdfParser as last resort
+      const directResult = await this.selfHostPdfParser.parsePdf(file, vault);
+      if (directResult && "content" in directResult) {
+        await this.pdfCache.set(file, {
+          response: directResult.content,
+          elapsed_time_ms: 0,
+        });
+        await saveConvertedDocOutput(file, directResult.content, vault);
+        return directResult.content;
+      }
+
+      return `[Error: Could not extract content from PDF ${file.basename}. No PDF processing service is configured.]`;
     } catch (error) {
       logError(`Error extracting content from PDF ${file.path}:`, error);
       return `[Error: Could not extract content from PDF ${file.basename}]`;
@@ -283,7 +283,6 @@ export class Docs4LLMParser implements FileParser {
   // Reason: Reference the shared constant so getProjectSupportedExtensions() stays in sync
   // with the actual parser registrations without duplicating the list.
   supportedExtensions = [...DOCS4LLM_SUPPORTED_EXTENSIONS];
-  private brevilabsClient: BrevilabsClient;
   private projectContextCache: ProjectContextCache;
   private selfHostPdfParser: SelfHostPdfParser;
   private currentProject: ProjectConfig | null;
@@ -293,8 +292,7 @@ export class Docs4LLMParser implements FileParser {
     Docs4LLMParser.lastRateLimitNoticeTime = 0;
   }
 
-  constructor(brevilabsClient: BrevilabsClient, project: ProjectConfig | null = null) {
-    this.brevilabsClient = brevilabsClient;
+  constructor(project: ProjectConfig | null = null) {
     this.projectContextCache = ProjectContextCache.getInstance();
     this.selfHostPdfParser = new SelfHostPdfParser();
     this.currentProject = project;
@@ -328,11 +326,7 @@ export class Docs4LLMParser implements FileParser {
       );
 
       // For PDFs, try Miyo first when self-host mode is active
-      if (
-        isSelfHostModeValid() &&
-        getSettings().enableMiyo &&
-        file.extension.toLowerCase() === "pdf"
-      ) {
+      if (getSettings().enableMiyo && file.extension.toLowerCase() === "pdf") {
         const miyoResult = await this.selfHostPdfParser.parsePdf(file, vault);
         if (miyoResult && "content" in miyoResult) {
           await this.projectContextCache.setFileContext(
@@ -347,67 +341,31 @@ export class Docs4LLMParser implements FileParser {
           return miyoResult.content;
         }
         if (miyoResult && "error" in miyoResult) {
-          // Self-host mode: do NOT fall back to cloud API to preserve privacy.
-          // Throw so executeWithProcessTracking marks this file as failed/retriable.
           throw new Error(`Miyo failed to parse ${file.basename}: ${miyoResult.error}`);
         }
       }
 
-      const binaryContent = await vault.readBinary(file);
-
-      logInfo(
-        `[Docs4LLMParser] Project ${this.currentProject.name}: Calling docs4llm API for: ${file.path}`
-      );
-      const docs4llmResponse = await this.brevilabsClient.docs4llm(binaryContent, file.extension);
-
-      if (!docs4llmResponse || !docs4llmResponse.response) {
-        throw new Error("Empty response from docs4llm API");
+      // For PDFs without Miyo, try direct SelfHostPdfParser
+      if (file.extension.toLowerCase() === "pdf") {
+        const directResult = await this.selfHostPdfParser.parsePdf(file, vault);
+        if (directResult && "content" in directResult) {
+          await this.projectContextCache.setFileContext(
+            this.currentProject,
+            file.path,
+            directResult.content
+          );
+          await saveConvertedDocOutput(file, directResult.content, vault);
+          return directResult.content;
+        }
+        throw new Error(
+          `Could not parse PDF ${file.basename}. No PDF processing service configured.`
+        );
       }
 
-      // Extract markdown content from response
-      let content = "";
-      if (typeof docs4llmResponse.response === "string") {
-        content = docs4llmResponse.response;
-      } else if (Array.isArray(docs4llmResponse.response)) {
-        // Handle array of documents from docs4llm
-        const markdownParts: string[] = [];
-        for (const rawDoc of docs4llmResponse.response) {
-          const doc = rawDoc as { content?: { md?: string; text?: string } } | null | undefined;
-          if (doc?.content) {
-            // Prioritize markdown content, then fallback to text content
-            if (doc.content.md) {
-              markdownParts.push(doc.content.md);
-            } else if (doc.content.text) {
-              markdownParts.push(doc.content.text);
-            }
-          }
-        }
-        content = markdownParts.join("\n\n");
-      } else if (typeof docs4llmResponse.response === "object") {
-        // Handle single object response (backward compatibility)
-        const resp = docs4llmResponse.response as Record<string, unknown>;
-        if (resp.md) {
-          content = resp.md as string;
-        } else if (resp.text) {
-          content = resp.text as string;
-        } else if (resp.content) {
-          content = resp.content as string;
-        } else {
-          // If no markdown/text/content field, stringify the entire response
-          content = JSON.stringify(docs4llmResponse.response, null, 2);
-        }
-      } else {
-        content = JSON.stringify(docs4llmResponse.response);
-      }
-
-      // Cache the converted content
-      await this.projectContextCache.setFileContext(this.currentProject, file.path, content);
-      await saveConvertedDocOutput(file, content, vault);
-
-      logInfo(
-        `[Docs4LLMParser] Project ${this.currentProject.name}: Successfully processed and cached: ${file.path}`
+      // Non-PDF document types: no longer supported without external service
+      throw new Error(
+        "Document conversion for this file type requires a configured document processing service."
       );
-      return content;
     } catch (error) {
       logError(
         `[Docs4LLMParser] Project ${this.currentProject?.name}: Error processing file ${file.path}:`,
@@ -467,7 +425,7 @@ export class FileParserManager {
    * Reason: The UI status panel needs to distinguish between "pending" (will be processed)
    * and "unsupported" (will never be processed) for non-markdown files. This method
    * exposes the exact extension set used when constructing a project-mode FileParserManager,
-   * without requiring a full instantiation with real BrevilabsClient/Vault dependencies.
+   * without requiring a full instantiation with real Vault dependencies.
    *
    * Project mode registers: MarkdownParser + Docs4LLMParser + CanvasParser
    * (PDFParser is skipped because Docs4LLMParser already handles PDFs in project mode)
@@ -489,21 +447,16 @@ export class FileParserManager {
     return extensions;
   }
 
-  constructor(
-    brevilabsClient: BrevilabsClient,
-    _vault: Vault,
-    isProjectMode: boolean = false,
-    project: ProjectConfig | null = null
-  ) {
+  constructor(_vault: Vault, isProjectMode: boolean = false, project: ProjectConfig | null = null) {
     // Register parsers
     this.registerParser(new MarkdownParser());
 
     // In project mode, use Docs4LLMParser for all supported files including PDFs
-    this.registerParser(new Docs4LLMParser(brevilabsClient, project));
+    this.registerParser(new Docs4LLMParser(project));
 
     // Only register PDFParser when not in project mode
     if (!isProjectMode) {
-      this.registerParser(new PDFParser(brevilabsClient));
+      this.registerParser(new PDFParser());
     }
 
     this.registerParser(new CanvasParser());

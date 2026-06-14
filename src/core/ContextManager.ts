@@ -91,12 +91,9 @@ export class ContextManager {
       // 2. Build L2 context from previous turns (uses stored envelope content, preserves compaction)
       const { l2Context, l2Paths } = this.buildL2ContextFromPreviousTurns(message.id!, messageRepo);
 
-      // 3. Extract URLs and process them (for Copilot Plus chain)
+      // 3. Extract URLs and process them
       const contextUrls = message.context?.urls || [];
-      const urlContextAddition =
-        chainType === ChainType.COPILOT_PLUS_CHAIN
-          ? await this.mention.processUrlList(contextUrls)
-          : { urlContext: "", imageUrls: [] };
+      const urlContextAddition = await this.mention.processUrlList(contextUrls);
 
       // 4. Process context notes (L3 - current turn only, excluding files already in L2 or system prompt)
       // Combine exclusions: custom prompt files + system prompt files + files already in L2

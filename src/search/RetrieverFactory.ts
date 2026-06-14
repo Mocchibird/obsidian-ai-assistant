@@ -1,5 +1,4 @@
 import { logInfo, logWarn } from "@/logger";
-import { isSelfHostModeValid } from "@/plusUtils";
 import { shouldUseMiyo } from "@/miyo/miyoUtils";
 import { getSettings, CopilotSettings } from "@/settings/model";
 import { App } from "obsidian";
@@ -154,7 +153,7 @@ export class RetrieverFactory {
     }
 
     // Self-host mode handling - requires valid validation (within grace period)
-    if (isSelfHostModeValid()) {
+    if (currentSettings.enableSelfHostMode) {
       // If URL is configured, try to use self-host backend (API key is optional)
       if (currentSettings.selfHostUrl) {
         const backend = await RetrieverFactory.getSelfHostedBackend(currentSettings);
@@ -297,7 +296,7 @@ export class RetrieverFactory {
     }
 
     // Self-host mode handling - requires valid validation (within grace period)
-    if (isSelfHostModeValid()) {
+    if (currentSettings.enableSelfHostMode) {
       // URL configured with backend available → self_hosted (API key is optional)
       if (currentSettings.selfHostUrl && RetrieverFactory.selfHostedBackend) {
         return "self_hosted";

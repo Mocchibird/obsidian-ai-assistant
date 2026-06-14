@@ -164,7 +164,7 @@ export class VaultQAChainRunner extends BaseChainRunner {
       const sourceCatalog = formatSourceCatalog(sourceEntries).join("\n");
 
       const capNotice = retrieverCapReached
-        ? `\n\nIMPORTANT: The retrieval limit of ${settings.maxSourceChunks} documents was reached. ${merged.length - settings.maxSourceChunks} additional matching documents were omitted. Inform the user: "Note: The retrieval cap was reached — some matching documents were not included. Upgrade to Copilot Plus for more complete answers."`
+        ? `\n\nIMPORTANT: The retrieval limit of ${settings.maxSourceChunks} documents was reached. ${merged.length - settings.maxSourceChunks} additional matching documents were omitted. Inform the user: "Note: The retrieval cap was reached — some matching documents were not included."`
         : "";
 
       const qaInstructions =

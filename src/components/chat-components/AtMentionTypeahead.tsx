@@ -14,7 +14,6 @@ interface AtMentionTypeaheadProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (category: AtMentionCategory, data: TFile | string | TFolder | WebTabContext) => void;
-  isCopilotPlus?: boolean;
   currentActiveFile?: TFile | null;
 }
 
@@ -31,7 +30,6 @@ export function AtMentionTypeahead({
   isOpen,
   onClose,
   onSelect,
-  isCopilotPlus = false,
   currentActiveFile = null,
 }: AtMentionTypeaheadProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,14 +43,13 @@ export function AtMentionTypeahead({
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [prevResultsLength, setPrevResultsLength] = useState(0);
 
-  const availableCategoryOptions = useAtMentionCategories(isCopilotPlus);
+  const availableCategoryOptions = useAtMentionCategories();
 
   // Get search results based on current state using unified search
   const searchResults = useAtMentionSearch(
     searchQuery,
     extendedState.mode,
     extendedState.selectedCategory,
-    isCopilotPlus,
     availableCategoryOptions,
     currentActiveFile
   );

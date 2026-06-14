@@ -1,14 +1,12 @@
 import { getSelectedTextContexts } from "@/aiParams";
 import { ChainType } from "@/chainType";
-import { RESTRICTION_MESSAGES } from "@/constants";
 import { logWarn, logInfo, logError } from "@/logger";
 import { escapeXml } from "@/LLMProviders/chainRunner/utils/xmlParsing";
 import { getWebViewerService } from "@/services/webViewerService/webViewerServiceSingleton";
 import { WebViewerTimeoutError } from "@/services/webViewerService/webViewerServiceTypes";
 import { FileParserManager } from "@/tools/FileParserManager";
-import { isPlusChain, isTextReadableFile } from "@/utils";
 import { normalizeUrlString } from "@/utils/urlNormalization";
-import { TFile, Vault, Notice } from "obsidian";
+import { TFile, Vault } from "obsidian";
 import {
   NOTE_CONTEXT_PROMPT_TAG,
   EMBEDDED_PDF_TAG,
@@ -285,9 +283,7 @@ export class ContextProcessor {
 
     content = await this.processEmbeddedNotes(content, note, vault, fileParserManager, chainType);
 
-    if (isPlusChain(chainType)) {
-      content = await this.processEmbeddedPDFs(content, vault, fileParserManager);
-    }
+    content = await this.processEmbeddedPDFs(content, vault, fileParserManager);
 
     return await this.processDataviewBlocks(content, note.path);
   }
@@ -386,9 +382,7 @@ export class ContextProcessor {
         embeddedContent = segment.content;
       }
 
-      if (isPlusChain(chainType)) {
-        embeddedContent = await this.processEmbeddedPDFs(embeddedContent, vault, fileParserManager);
-      }
+      embeddedContent = await this.processEmbeddedPDFs(embeddedContent, vault, fileParserManager);
 
       embeddedContent = await this.processDataviewBlocks(embeddedContent, resolvedFile.path);
 
@@ -588,16 +582,7 @@ export class ContextProcessor {
           return;
         }
 
-        // 2. Apply chain restrictions only to supported files that are NOT text-readable
-        if (!isPlusChain(currentChain) && !isTextReadableFile(note)) {
-          // This file type is supported, but requires Plus mode (e.g., PDF)
-          logWarn(`File type ${note.extension} requires Copilot Plus mode for context processing.`);
-          // Show user-facing notice about the restriction
-          new Notice(RESTRICTION_MESSAGES.NON_MARKDOWN_FILES_RESTRICTED);
-          return;
-        }
-
-        // 3. If we reach here, parse the file (md, canvas, or other supported type in Plus mode)
+        // 3. If we reach here, parse the file (md, canvas, or other supported type)
         const content =
           note.extension === "md"
             ? await this.buildMarkdownContextContent(note, vault, fileParserManager, currentChain)

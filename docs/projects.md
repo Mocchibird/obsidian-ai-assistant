@@ -18,6 +18,7 @@ In regular chat, all conversations share the same settings and model. Projects l
 - **Isolated chat history** — Conversations in one project don't mix with conversations in another
 
 **Example use cases:**
+
 - A "Research" project that always has your research notes as context
 - A "Client Work" project with a specific system prompt and access to client-related notes
 - A "Learning" project with YouTube video URLs for study materials
@@ -39,18 +40,23 @@ In regular chat, all conversations share the same settings and model. Projects l
 Each project has the following settings:
 
 ### Name
+
 A short name for the project. Appears in the project list.
 
 ### Description
+
 An optional description of what the project is for.
 
 ### Model
+
 Choose which AI model to use for this project. The available options depend on which models you have enabled.
 
 ### Model Settings
+
 Override the default temperature and max tokens specifically for this project.
 
 ### System Prompt
+
 Set a custom system prompt for this project. This replaces (or supplements) the global default. See [System Prompts](system-prompts.md) for details.
 
 ---
@@ -112,7 +118,7 @@ As an alpha feature, projects have some known limitations:
 
 - Large context sources (many notes or large files) may slow down context loading
 - The context loading on project switch is synchronous — the AI isn't available until loading completes
-- Some features available in regular Plus mode may behave differently in projects
+- Some features available in regular Agent mode may behave differently in projects
 - Auto-compact behavior is the same as regular chat
 
 ---
@@ -122,4 +128,4 @@ As an alpha feature, projects have some known limitations:
 - [Chat Interface](chat-interface.md) — Chat modes overview, new chat behavior, history
 - [System Prompts](system-prompts.md) — Custom system prompts for projects
 - [Context and Mentions](context-and-mentions.md) — How context works
-- [Copilot Plus and Self-Host](copilot-plus-and-self-host.md) — Plus features
+- [Memory and Self-Host](memory-and-self-host.md) — Memory system and self-host mode

@@ -37,25 +37,23 @@ export async function fetchModelsForProvider(
     }
 
     // Standard API key based providers
+    let url = getProviderInfo(provider).listModelURL || "http://localhost:4000/v1/models";
+    const isLocalDiscoveryUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(url);
+
     let apiKey = getApiKeyForProvider(provider);
-    if (!apiKey) {
+    if (!apiKey && !isLocalDiscoveryUrl) {
       return { success: false, models: [], error: "API key not configured" };
     }
 
-    apiKey = await getDecryptedKey(apiKey);
-    if (!apiKey) {
-      return { success: false, models: [], error: "Failed to decrypt API key" };
+    if (apiKey) {
+      apiKey = await getDecryptedKey(apiKey);
     }
 
-    let url = getProviderInfo(provider).listModelURL;
-    if (!url) {
-      return { success: false, models: [], error: "Provider does not support model listing" };
-    }
-
-    let headers: Record<string, string> = {
-      Authorization: `Bearer ${apiKey}`,
-    };
-
+    let headers: Record<string, string> = apiKey
+      ? {
+          Authorization: `Bearer ${apiKey}`,
+        }
+      : {};
     if (provider === ChatModelProviders.GOOGLE) {
       url += `?key=${apiKey}`;
       headers = {};

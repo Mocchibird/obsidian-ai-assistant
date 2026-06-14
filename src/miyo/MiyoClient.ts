@@ -355,7 +355,7 @@ export class MiyoClient {
 
   /**
    * Build request headers, including auth when configured.
-   * `Authorization` uses the Copilot Plus license key.
+   * `Authorization` uses the self-host API key when one is set.
    *
    * @returns Headers object for requestUrl.
    */
@@ -363,11 +363,9 @@ export class MiyoClient {
     const settings = getSettings();
     const headers: Record<string, string> = {};
 
-    const licenseKey = settings.plusLicenseKey
-      ? await getDecryptedKey(settings.plusLicenseKey)
-      : "";
-    if (licenseKey) {
-      headers.Authorization = `Bearer ${licenseKey}`;
+    const apiKey = settings.selfHostApiKey ? await getDecryptedKey(settings.selfHostApiKey) : "";
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
     }
 
     return headers;

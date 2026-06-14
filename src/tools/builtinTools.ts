@@ -4,6 +4,7 @@ import { isDesktopRuntime } from "@/services/obsidianCli/ObsidianCliClient";
 import { editFileTool, writeFileTool } from "./ComposerTools";
 import { createGetFileTreeTool } from "./FileTreeTools";
 import { updateMemoryTool } from "./memoryTools";
+import { manageSkillsTool } from "./skillTools";
 import { readNoteTool } from "./NoteTools";
 import { obsidianRandomReadTool } from "./ObsidianCliDailyTools";
 import {
@@ -232,7 +233,6 @@ newText: "## Attendees\\n- John Smith\\n- Jane Doe\\n- Bob Johnson"`,
       displayName: "YouTube Transcription",
       description: "Get transcripts from YouTube videos",
       category: "media",
-      isPlusOnly: true,
       requiresUserMessageContent: true,
       customPromptInstructions: `For youtubeTranscription:
 - Use when user provides YouTube URLs
@@ -321,6 +321,30 @@ export function registerMemoryTool(): void {
 - DO NOT use for general information - only for personal facts, preferences, or specific things the user wants stored
 
 Example: statement: "I'm studying Japanese and I'm preparing for JLPT N3"`,
+    },
+  });
+}
+
+/**
+ * Register the learned-skills management tool. Available whenever automatic
+ * skill creation is enabled so the agent can consult and grow its skill library.
+ */
+export function registerSkillTool(): void {
+  const registry = ToolRegistry.getInstance();
+
+  registry.register({
+    tool: manageSkillsTool,
+    metadata: {
+      id: "manageSkills",
+      displayName: "Manage Skills",
+      description:
+        "Consult or create reusable skills (learned procedures): list the catalogue, view a skill's full steps, or save a new skill.",
+      category: "memory",
+      copilotCommands: ["@skills"],
+      isAlwaysEnabled: true,
+      customPromptInstructions: `For manageSkills:
+- Before doing multi-step work, check the available skills index; if a relevant skill exists, 'view' it and follow its procedure.
+- Use 'create' to save a genuinely reusable procedure the user is likely to need again.`,
     },
   });
 }
@@ -493,11 +517,14 @@ export function initializeBuiltinTools(vault?: Vault): void {
   const shouldHaveFileTree = vault !== undefined;
   const hasUpdateMemoryTool = registry.getToolMetadata("updateMemory") !== undefined;
   const shouldHaveMemoryTool = settings.enableSavedMemory;
+  const hasSkillTool = registry.getToolMetadata("manageSkills") !== undefined;
+  const shouldHaveSkillTool = settings.enableAutoSkillCreation;
 
   if (
     registry.getAllTools().length === 0 ||
     hasFileTree !== shouldHaveFileTree ||
-    hasUpdateMemoryTool !== shouldHaveMemoryTool
+    hasUpdateMemoryTool !== shouldHaveMemoryTool ||
+    hasSkillTool !== shouldHaveSkillTool
   ) {
     // Clear any existing tools
     registry.clear();
@@ -514,6 +541,11 @@ export function initializeBuiltinTools(vault?: Vault): void {
     // Register memory tool if saved memory is enabled
     if (settings.enableSavedMemory) {
       registerMemoryTool();
+    }
+
+    // Register the learned-skills tool if automatic skill creation is enabled
+    if (settings.enableAutoSkillCreation) {
+      registerSkillTool();
     }
 
     // Register desktop-only CLI tools (invisible on mobile)

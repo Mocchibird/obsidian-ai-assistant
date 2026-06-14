@@ -18,10 +18,13 @@ Copilot supports 16+ AI providers including OpenAI, Anthropic, Google Gemini, Ol
 
 ## Installation
 
-1. Open **Obsidian Settings** → **Community plugins**
-2. Turn off **Safe mode** if prompted
-3. Click **Browse** and search for **Copilot**
-4. Click **Install**, then **Enable**
+This fork is **not** distributed through the Obsidian Community Plugins store. Install it using one of the methods in the [README](../README.md#install):
+
+- **BRAT (recommended)** — installs and auto-updates the plugin straight from the GitHub repository
+- **Manual install from a release** — download `main.js`, `manifest.json`, and `styles.css` and drop them into your vault's plugin folder
+- **Build from source** — clone the repo and run the build yourself
+
+The plugin folder id is `copilot`, so it lives at `<your-vault>/.obsidian/plugins/copilot/`. After installing, go to **Settings → Community plugins**, find **Copilot**, and enable it.
 
 Copilot is now installed. A robot icon will appear in the left sidebar ribbon.
 
@@ -37,12 +40,12 @@ Go to **Settings** → **Copilot** (scroll down to the Community Plugins section
 
 On the **Basic** tab, click **Set Keys** to open the API key dialog. Enter the key for your chosen provider:
 
-| Provider | Where to get a key |
-|---|---|
-| OpenRouter (default) | https://openrouter.ai/keys |
-| OpenAI | https://platform.openai.com/api-keys |
-| Anthropic | https://console.anthropic.com/settings/keys |
-| Google Gemini | https://makersuite.google.com/app/apikey |
+| Provider             | Where to get a key                          |
+| -------------------- | ------------------------------------------- |
+| OpenRouter (default) | https://openrouter.ai/keys                  |
+| OpenAI               | https://platform.openai.com/api-keys        |
+| Anthropic            | https://console.anthropic.com/settings/keys |
+| Google Gemini        | https://makersuite.google.com/app/apikey    |
 
 The default model is **OpenRouter Gemini 2.5 Flash**, which requires an OpenRouter API key. If you'd prefer a different provider, set up that key first, then change the default model.
 
@@ -56,7 +59,7 @@ Use the **Default Mode** dropdown to set which mode opens by default:
 
 - **Chat** — General conversation, good for most tasks
 - **Vault QA** — Ask questions answered from your notes
-- **Copilot Plus** — Advanced mode with autonomous agent and tools (requires Copilot Plus license)
+- **Agent** — Advanced mode with autonomous agent and tools (available to everyone)
 - **Projects** — Focused workspaces (alpha feature)
 
 Most users should start with **Chat** mode.
@@ -74,6 +77,7 @@ You can open Copilot in several ways:
 ### Sidebar vs. Editor Tab
 
 By default, Copilot opens as a **view** (sidebar panel). You can change this in Settings → Copilot → Basic → **Open chat in**:
+
 - **View** — Opens in the sidebar, stays visible as you work
 - **Editor** — Opens as an editor tab, giving it more screen space
 
@@ -95,14 +99,14 @@ The AI will automatically include your currently open note as context, so you ca
 
 These are the default shortcuts. You can customize them in **Obsidian Settings** → **Hotkeys** → search for "Copilot".
 
-| Action | Default Shortcut |
-|---|---|
-| Open Copilot Chat Window | *(unbound — assign in Hotkeys)* |
-| Toggle Copilot Chat Window | *(unbound — assign in Hotkeys)* |
-| New Copilot Chat | *(unbound — assign in Hotkeys)* |
-| Quick Ask (floating input) | *(unbound — assign in Hotkeys)* |
-| Trigger Quick Command | *(unbound — assign in Hotkeys)* |
-| Add selection to chat context | *(unbound — assign in Hotkeys)* |
+| Action                        | Default Shortcut                |
+| ----------------------------- | ------------------------------- |
+| Open Copilot Chat Window      | _(unbound — assign in Hotkeys)_ |
+| Toggle Copilot Chat Window    | _(unbound — assign in Hotkeys)_ |
+| New Copilot Chat              | _(unbound — assign in Hotkeys)_ |
+| Quick Ask (floating input)    | _(unbound — assign in Hotkeys)_ |
+| Trigger Quick Command         | _(unbound — assign in Hotkeys)_ |
+| Add selection to chat context | _(unbound — assign in Hotkeys)_ |
 
 ### Send Shortcut
 
@@ -118,7 +122,7 @@ By default, **Enter** sends a message and **Shift+Enter** adds a new line. You c
 The AI "brain" behind Copilot — a model trained on vast text to understand and generate human language, powering chat, summarization, and writing assistance.
 
 **API (Application Programming Interface)**
-A way for Copilot to communicate with external AI services. You provide an API key, which is like a password that lets Copilot use a provider's AI models on your behalf. Note: an OpenAI API key is *different* from a ChatGPT Plus subscription — you don't need ChatGPT Plus to use Copilot.
+A way for Copilot to communicate with external AI services. You provide an API key, which is like a password that lets Copilot use a provider's AI models on your behalf. Note: an OpenAI API key is _different_ from a ChatGPT Plus subscription — you don't need ChatGPT Plus to use Copilot.
 
 **API Key**
 A secret token from an AI provider that authorizes Copilot to make requests. Most providers require you to have a billing account with a positive balance.
