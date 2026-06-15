@@ -987,7 +987,7 @@ export class AutonomousAgentChainRunner extends CopilotPlusChainRunner {
 
     const limitMessage = timedOut
       ? "I've reached the time limit for reasoning. Here's what I found so far based on the search results."
-      : "I've reached the maximum number of tool calls. Here's what I found so far based on the search results.";
+      : `I've reached the maximum number of tool calls (${maxIterations}). Here's what I found so far. You can raise this in Settings → Tools → Max Iterations if you need the agent to keep going.`;
     const finalResponse = reasoningBlock ? reasoningBlock + "\n\n" + limitMessage : limitMessage;
 
     return {

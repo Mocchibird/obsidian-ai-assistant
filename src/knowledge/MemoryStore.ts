@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
 import { ensureFolderExists } from "@/utils";
+import { trashFile } from "@/utils/vaultAdapterUtils";
 import { logError, logInfo } from "@/logger";
 import { parseNote, serializeNote } from "@/knowledge/markdownNote";
 import { slugify } from "@/knowledge/slug";
@@ -44,6 +45,7 @@ export class MemoryStore {
           created: String(fm.created ?? ""),
           source: ((fm.source as string) || "auto") as KnowledgeSource,
           pinned: fm.pinned === true,
+          audited: fm.audited !== undefined ? String(fm.audited) : undefined,
         });
       } catch (error) {
         logError("[MemoryStore] Failed to read memory note:", file.path, error);
@@ -96,6 +98,33 @@ export class MemoryStore {
     const rest = all.filter((m) => !m.pinned);
     const relevant = rankByRelevance(query, rest, (m) => m.text, k);
     return [...pinned, ...relevant];
+  }
+
+  /**
+   * Stamp a memory note with the time it was audited, preserving its body and
+   * other frontmatter. No-op if the note no longer exists.
+   *
+   * @param slug - Basename of the memory note.
+   * @param isoTimestamp - ISO-8601 audit timestamp to record.
+   */
+  async markAudited(slug: string, isoTimestamp: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(`${this.folderPath}/${slug}.md`);
+    if (!(file instanceof TFile)) return;
+    const parsed = parseNote(await this.app.vault.read(file));
+    const frontmatter = { ...parsed.frontmatter, audited: isoTimestamp };
+    await this.app.vault.modify(file, serializeNote(frontmatter, parsed.body));
+  }
+
+  /**
+   * Move a memory note to the trash (recoverable). No-op if it does not exist.
+   *
+   * @param slug - Basename of the memory note to remove.
+   */
+  async remove(slug: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(`${this.folderPath}/${slug}.md`);
+    if (!(file instanceof TFile)) return;
+    await trashFile(this.app, file);
+    logInfo("[MemoryStore] Removed memory note:", slug);
   }
 
   /** Ensure the slug does not collide with an existing note in the folder. */

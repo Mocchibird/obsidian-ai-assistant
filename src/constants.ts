@@ -120,8 +120,8 @@ export const TEXT_WEIGHT = 0.4;
 export const MAX_CHARS_FOR_LOCAL_SEARCH_CONTEXT = 448000;
 export const LLM_TIMEOUT_MS = 30000; // 30 seconds timeout for LLM operations
 const DEFAULT_MAX_SOURCE_CHUNKS = 30; // Default max chunks for search results (with diverse top-K)
-export const AGENT_LOOP_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes timeout for agent loop
-export const AGENT_MAX_ITERATIONS_LIMIT = 16; // Maximum allowed value for agent iterations setting
+export const AGENT_LOOP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes timeout for agent loop (room for high iteration counts)
+export const AGENT_MAX_ITERATIONS_LIMIT = 100; // Maximum allowed value for agent iterations setting
 export const LOADING_MESSAGES = {
   DEFAULT: "",
   READING_FILES: "Reading files",
@@ -895,7 +895,7 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   supadataApiKey: "",
   enableLexicalBoosts: true,
   suggestedDefaultCommands: false,
-  autonomousAgentMaxIterations: 4,
+  autonomousAgentMaxIterations: 50,
   autonomousAgentEnabledToolIds: [
     "localSearch",
     "readNote",
@@ -904,6 +904,7 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
     "youtubeTranscription",
     "writeFile",
     "editFile",
+    "moveFiles",
     "updateMemory",
   ],
   reasoningEffort: DEFAULT_MODEL_SETTING.REASONING_EFFORT,
@@ -912,6 +913,8 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   autoMemoryFolder: DEFAULT_MEMORY_FOLDER,
   enableAutoSkillCreation: true,
   skillsFolder: DEFAULT_SKILLS_FOLDER,
+  enableKnowledgeAudit: true,
+  knowledgeAuditIntervalDays: 7,
   quickCommandModelKey: undefined,
   quickCommandIncludeNoteContext: true,
   autoIncludeTextSelection: false,

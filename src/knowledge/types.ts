@@ -29,6 +29,8 @@ export interface MemoryRecord {
   source: KnowledgeSource;
   /** Pinned memories are always injected regardless of relevance (e.g. identity). */
   pinned: boolean;
+  /** ISO-8601 timestamp of the last knowledge audit, or undefined if never audited. */
+  audited?: string;
 }
 
 /**

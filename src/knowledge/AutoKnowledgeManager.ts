@@ -1,7 +1,8 @@
-import { App } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getSettings } from "@/settings/model";
+import { ensureFolderExists } from "@/utils";
 import { logError, logInfo } from "@/logger";
 import type { ChatMessage } from "@/types/message";
 import { MemoryStore } from "@/knowledge/MemoryStore";
@@ -13,6 +14,14 @@ import {
   parseMemoryExtraction,
   parseSkillExtraction,
 } from "@/knowledge/extraction";
+import {
+  MEMORY_AUDIT_SYSTEM_PROMPT,
+  SKILL_AUDIT_SYSTEM_PROMPT,
+  buildMemoryAuditHuman,
+  buildSkillAuditHuman,
+  isAuditDue,
+  parseAuditVerdicts,
+} from "@/knowledge/audit";
 
 /** Max recent messages fed to the memory extractor. */
 const MEMORY_CONTEXT_WINDOW = 6;
@@ -37,6 +46,7 @@ export class AutoKnowledgeManager {
   private readonly app: App;
   private extractingMemory = false;
   private extractingSkill = false;
+  private auditing = false;
 
   private constructor(app: App) {
     this.app = app;
@@ -160,6 +170,176 @@ export class AutoKnowledgeManager {
       confidence: skill.confidence,
       source: "auto",
     });
+  }
+
+  /**
+   * Run a periodic audit of stored memories and skills in the background.
+   * Throttled per-entry: only entries not audited within the configured
+   * interval are reviewed, so calling this on every launch re-audits each entry
+   * roughly once per interval. Stale, low-value, and duplicate entries are moved
+   * to the trash (recoverable) and recorded in an audit log. No-op when disabled
+   * or when nothing is due.
+   *
+   * @param chatModel - Model used to evaluate the entries.
+   */
+  maybeRunAudit(chatModel?: BaseChatModel): void {
+    const settings = getSettings();
+    if (!settings.enableKnowledgeAudit || !chatModel) return;
+    if (!settings.enableAutoMemory && !settings.enableAutoSkillCreation) return;
+    if (this.auditing) return;
+    this.auditing = true;
+    void this.runAudit(chatModel)
+      .catch((error) => logError("[AutoKnowledge] Knowledge audit failed:", error))
+      .finally(() => {
+        this.auditing = false;
+      });
+  }
+
+  private async runAudit(chatModel: BaseChatModel): Promise<void> {
+    const settings = getSettings();
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const intervalDays = settings.knowledgeAuditIntervalDays;
+
+    const removed: string[] = [];
+    let keptCount = 0;
+
+    if (settings.enableAutoMemory) {
+      const res = await this.auditMemories(chatModel, intervalDays, now, nowIso);
+      removed.push(...res.removed);
+      keptCount += res.kept;
+    }
+    if (settings.enableAutoSkillCreation) {
+      const res = await this.auditSkills(chatModel, intervalDays, now, nowIso);
+      removed.push(...res.removed);
+      keptCount += res.kept;
+    }
+
+    if (removed.length === 0 && keptCount === 0) {
+      logInfo("[AutoKnowledge] Audit: nothing due.");
+      return;
+    }
+
+    if (removed.length > 0) {
+      await this.appendAuditLog(nowIso, removed, keptCount);
+      new Notice(
+        `Copilot knowledge audit: removed ${removed.length} stale/duplicate note(s), kept ${keptCount}. See the audit log; deleted notes are in your trash.`
+      );
+    }
+    logInfo(`[AutoKnowledge] Audit complete: removed ${removed.length}, kept ${keptCount}.`);
+  }
+
+  /** Audit memories that are due; returns removed descriptions and kept count. */
+  private async auditMemories(
+    chatModel: BaseChatModel,
+    intervalDays: number,
+    now: number,
+    nowIso: string
+  ): Promise<{ removed: string[]; kept: number }> {
+    const store = this.memoryStore();
+    const all = await store.list();
+    // Never auto-remove pinned (e.g. identity) memories; exclude them entirely.
+    const due = all.filter((m) => !m.pinned && isAuditDue(m.audited, intervalDays, now));
+    if (due.length === 0) return { removed: [], kept: 0 };
+
+    const items = due.map((m) => ({
+      id: m.slug,
+      text: m.text,
+      category: m.category,
+      created: m.created,
+    }));
+    const response = await chatModel.invoke([
+      new SystemMessage(MEMORY_AUDIT_SYSTEM_PROMPT),
+      new HumanMessage(buildMemoryAuditHuman(items)),
+    ]);
+    const byId = new Map(parseAuditVerdicts(response.text ?? "").map((v) => [v.id, v]));
+
+    const removed: string[] = [];
+    let kept = 0;
+    for (const m of due) {
+      const verdict = byId.get(m.slug);
+      if (verdict?.action === "remove") {
+        await store.remove(m.slug);
+        removed.push(`memory "${m.text}" — ${verdict.reason || "flagged by audit"}`);
+      } else {
+        await store.markAudited(m.slug, nowIso);
+        kept++;
+      }
+    }
+    return { removed, kept };
+  }
+
+  /** Audit skills that are due; returns removed descriptions and kept count. */
+  private async auditSkills(
+    chatModel: BaseChatModel,
+    intervalDays: number,
+    now: number,
+    nowIso: string
+  ): Promise<{ removed: string[]; kept: number }> {
+    const store = this.skillStore();
+    const all = await store.list();
+    const due = all.filter((s) => isAuditDue(s.audited, intervalDays, now));
+    if (due.length === 0) return { removed: [], kept: 0 };
+
+    const items = due.map((s) => ({
+      id: s.slug,
+      name: s.name,
+      description: s.description,
+      whenToUse: s.whenToUse,
+      created: s.created,
+    }));
+    const response = await chatModel.invoke([
+      new SystemMessage(SKILL_AUDIT_SYSTEM_PROMPT),
+      new HumanMessage(buildSkillAuditHuman(items)),
+    ]);
+    const byId = new Map(parseAuditVerdicts(response.text ?? "").map((v) => [v.id, v]));
+
+    const removed: string[] = [];
+    let kept = 0;
+    for (const s of due) {
+      const verdict = byId.get(s.slug);
+      if (verdict?.action === "remove") {
+        await store.remove(s.slug);
+        removed.push(`skill "${s.name}" — ${verdict.reason || "flagged by audit"}`);
+      } else {
+        await store.markAudited(s.slug, nowIso);
+        kept++;
+      }
+    }
+    return { removed, kept };
+  }
+
+  /**
+   * Append a dated entry to the knowledge audit log note, creating it if needed.
+   * The log lives in the memory folder but carries no record frontmatter, so it
+   * is ignored by memory recall and by future audits.
+   */
+  private async appendAuditLog(
+    nowIso: string,
+    removed: string[],
+    keptCount: number
+  ): Promise<void> {
+    const folder = getSettings().autoMemoryFolder.replace(/\/+$/, "");
+    await ensureFolderExists(folder);
+    const path = `${folder}/Knowledge Audit Log.md`;
+    const date = nowIso.slice(0, 10);
+    const entry = [
+      `## ${date}`,
+      ...removed.map((r) => `- Removed ${r}`),
+      `- Kept ${keptCount} entr${keptCount === 1 ? "y" : "ies"}.`,
+    ].join("\n");
+
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) {
+      const current = await this.app.vault.read(existing);
+      await this.app.vault.modify(existing, `${current.trimEnd()}\n\n${entry}\n`);
+    } else {
+      const header =
+        "# Copilot Knowledge Audit Log\n\n" +
+        "Automatic record of memories and skills pruned by the periodic audit. " +
+        "Deleted notes are in your trash and can be restored.\n\n";
+      await this.app.vault.create(path, `${header}${entry}\n`);
+    }
   }
 
   /**

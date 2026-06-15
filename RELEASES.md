@@ -1,5 +1,21 @@
 # Release Notes
 
+# Copilot for Obsidian - Release v4.1.0 🤖
+
+This release makes the autonomous agent much better at large, multi-step jobs — especially reorganizing your vault — and adds a self-maintaining knowledge base that keeps your learned memories and skills tidy on its own.
+
+- 🗂️ **Bulk file tools for the agent** — Two new tools let the agent move/rename and delete many notes and folders in a single step instead of one at a time. **Move Files (Bulk)** uses Obsidian's link-aware rename, so backlinks across your vault update automatically and nothing breaks; moving a folder moves everything inside it. **Delete Files (Bulk)** sends items to the trash (recoverable). Move is on by default; delete is opt-in. This makes whole-vault restructuring practical in a handful of steps.
+- 🔢 **Configurable tool-call cap** — The agent's iteration limit (how many tool-call rounds it can run before stopping) is now adjustable, defaulting to **50** and allowing up to **100** (was a fixed 4). The per-response time budget was also raised to 15 minutes so longer jobs can actually finish, and the "max reached" message now points you to the setting.
+- 🧹 **Periodic Knowledge Audit** — Copilot now self-maintains the memories and skills it learns. In the background at launch it reviews them and prunes stale, low-value, or duplicate entries, keeping the clearest of any duplicates. It's throttled per entry (default: each reviewed at most once a week), never touches pinned identity facts, moves removals to your trash (recoverable), and logs every change to a **Knowledge Audit Log** note.
+- ⚙️ **New "Agent" settings tab** — A dedicated settings tab now surfaces the Max Iterations control, per-tool enable/disable toggles (including the new bulk tools), and the Knowledge Audit controls in one place.
+
+## Troubleshoot
+
+- Find the new controls under **Settings → Copilot → Agent**.
+- Removed memories/skills and bulk-deleted notes go to your trash and can be restored.
+
+---
+
 # Copilot for Obsidian - Release v3.3.3 🛠️
 
 This patch brings a fresh Gemini model, squashes a nasty Copilot Plus freeze, and makes it much easier to verify your dev build is actually loaded in Obsidian. Thanks to @logancyang and @zeroliu for the quick turnaround!

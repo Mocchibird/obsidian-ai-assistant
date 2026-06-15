@@ -245,6 +245,18 @@ export default class CopilotPlugin extends Plugin {
       void this.systemPromptRegister
         .initialize()
         .then(() => migrateSystemPromptsFromSettings(this.app.vault));
+
+      // Background: audit learned memories/skills. Throttled per-entry to the
+      // configured interval (default weekly), so running on every launch
+      // re-reviews each entry roughly once per interval. Fire-and-forget.
+      try {
+        const chatModel = this.projectManager
+          .getCurrentChainManager()
+          .chatModelManager.getChatModel();
+        AutoKnowledgeManager.getInstance(this.app).maybeRunAudit(chatModel);
+      } catch (error) {
+        logInfo("Failed to start knowledge audit:", error);
+      }
     });
 
     // Initialize automatic selection handler

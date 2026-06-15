@@ -16,6 +16,7 @@ import {
   obsidianTemplatesTool,
 } from "./ObsidianCliTools";
 import { localSearchTool, webSearchTool } from "./SearchTools";
+import { deleteFilesTool, moveFilesTool } from "./VaultManagementTools";
 import { createGetTagListTool } from "./TagTools";
 import {
   convertTimeBetweenTimezonesTool,
@@ -222,6 +223,46 @@ Example: Add "Bob Johnson" to attendees in notes/meeting.md:
 path: "notes/meeting.md"
 oldText: "## Attendees\\n- John Smith\\n- Jane Doe"
 newText: "## Attendees\\n- John Smith\\n- Jane Doe\\n- Bob Johnson"`,
+    },
+  },
+
+  // Bulk vault management tools
+  {
+    tool: moveFilesTool,
+    metadata: {
+      id: "moveFiles",
+      displayName: "Move Files (Bulk)",
+      description: "Move or rename many files/folders at once; backlinks update automatically",
+      category: "file",
+      requiresVault: true,
+      customPromptInstructions: `For moveFiles:
+- Use this for ANY bulk reorganization (moving/renaming multiple notes or folders). Do NOT move items one at a time with separate calls.
+- Pass all moves in a single call via the "operations" array, each with "from" (current path) and "to" (new path).
+- Backlinks across the vault are updated automatically — you never need to fix links yourself afterward.
+- Moving a folder moves all of its contents in one operation. Prefer moving a whole folder over moving each file inside it.
+- Missing destination parent folders are created automatically. Use getFileTree first to confirm exact source paths.
+- Each operation succeeds or fails independently; read the returned "results" array and retry only the failed ones.
+
+Example: operations: [
+  { from: "30_Episodic/Japanese", to: "30_Areas/Japanese" },
+  { from: "Iris/CLAUDE.md", to: "00_Meta/CLAUDE.md" }
+]`,
+    },
+  },
+  {
+    tool: deleteFilesTool,
+    metadata: {
+      id: "deleteFiles",
+      displayName: "Delete Files (Bulk)",
+      description: "Delete many files/folders at once (moved to system trash, recoverable)",
+      category: "file",
+      requiresVault: true,
+      customPromptInstructions: `For deleteFiles:
+- Use to remove multiple files or folders in one call via the "paths" array.
+- Deletions go to the system trash and are recoverable, but still confirm intent with the user before deleting unless they clearly asked for it.
+- Deleting a folder removes its contents. Use getFileTree to confirm exact paths first.
+
+Example: paths: ["inbox/Test.md", "90_Inbox/old-draft.md"]`,
     },
   },
 

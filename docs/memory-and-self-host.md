@@ -45,6 +45,25 @@ Because memories and skills are stored as plain notes in your vault, they're als
 
 ---
 
+## Periodic Audit (Self-Maintaining Memory)
+
+Over time, your memories and skills can accumulate stale facts, near-duplicates, or low-value notes. Copilot periodically audits them and prunes the cruft so the collection stays accurate and useful — without you having to tidy it by hand.
+
+How it works:
+
+- **Runs at launch, throttled per note.** Because the plugin only runs while Obsidian is open, the audit checks in each time you start Obsidian. Every memory and skill is reviewed at most once per interval (one week by default), and notes reviewed recently are skipped until the interval passes. In practice each note gets re-checked roughly once a week.
+- **What it removes.** The model reviews each due note and removes only clearly stale, outdated, low-value, or duplicate entries — keeping the clearest one when it finds duplicates. It's deliberately conservative: when in doubt, it keeps the note.
+- **Your identity facts are safe.** Pinned notes (like your name and other core identity facts) are never auto-removed.
+- **Recoverable.** Removed notes are moved to your trash (per your Obsidian "Deleted files" setting), so you can restore anything. Each audit also appends to a **Knowledge Audit Log** note in your memory folder, listing what was removed and why.
+- **Fully local.** The audit uses the same model you've already configured — nothing is sent anywhere except your chosen provider.
+
+Settings:
+
+- **Enabled by default** (the `enableKnowledgeAudit` setting). It only runs when automatic memory and/or skills are enabled.
+- **Interval**: one week by default (the `knowledgeAuditIntervalDays` setting, 1–365 days).
+
+---
+
 ## Document Processor
 
 When Copilot processes PDFs and other non-markdown files, it converts them to markdown for the AI to read.

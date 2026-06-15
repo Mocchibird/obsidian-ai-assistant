@@ -30,17 +30,19 @@ The agent activates automatically when you're in **Agent** mode. You don't need 
 
 The agent works in iteration cycles (think → use a tool → think → use a tool → answer). You can control the maximum number of iterations before the agent stops:
 
-- **Default**: 4 iterations
-- **Maximum**: 16 iterations
-- **Setting**: **Settings → Copilot → Agent → Autonomous Agent Max Iterations**
+- **Default**: 50 iterations
+- **Maximum**: 100 iterations
+- **Setting**: **Settings → Copilot → Agent → Max Iterations**
 
-The agent also has a maximum runtime of 5 minutes per response, regardless of iteration count.
+A higher value lets the agent complete longer, multi-step tasks — such as reorganizing many notes — before it stops. If the agent runs out of iterations, it tells you and you can raise this limit and ask it to continue.
+
+The agent also has a maximum runtime of 15 minutes per response, regardless of iteration count.
 
 ---
 
 ## Available Tools
 
-Copilot has 13 built-in tools. Some are always active; others can be enabled or disabled.
+Copilot has 15 built-in tools. Some are always active; others can be enabled or disabled.
 
 ### Always-Enabled Tools
 
@@ -117,6 +119,22 @@ Makes targeted changes to an existing note using search-and-replace blocks.
 - **Use case**: Small edits (adding a bullet, updating a section) — more precise than rewriting the whole note
 - **Behavior**: Shows a diff preview before applying the change
 - **Auto-accept**: Same setting as Write to File
+
+#### Move Files (Bulk)
+
+Moves or renames many notes and folders in a single step. Links across your vault are updated automatically, so nothing breaks.
+
+- **Use case**: Reorganizing or restructuring your vault — moving groups of notes into new folders, renaming folders, flattening or nesting structure
+- **Behavior**: Moving a folder moves everything inside it. Missing destination folders are created for you. Each move succeeds or fails on its own, and the agent reports exactly what happened
+- **Enabled by default**
+
+#### Delete Files (Bulk)
+
+Deletes many notes and folders at once.
+
+- **Use case**: Cleaning up leftover or duplicate files during a reorganization
+- **Behavior**: Deleted items go to the trash (recoverable) according to your "Deleted files" setting in Obsidian. The agent confirms intent before deleting unless you clearly asked for it
+- **Off by default** — enable it in Tool Settings when you want the agent to remove files
 
 #### YouTube Transcription
 

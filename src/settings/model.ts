@@ -172,6 +172,10 @@ export interface CopilotSettings {
   enableAutoSkillCreation: boolean;
   /** Vault folder where automatically created skill notes are stored */
   skillsFolder: string;
+  /** Periodically audit learned memories/skills and prune stale, low-value, or duplicate entries */
+  enableKnowledgeAudit: boolean;
+  /** Re-audit interval in days: each memory/skill is reviewed at most once per this many days */
+  knowledgeAuditIntervalDays: number;
   /** Last selected model for quick command */
   quickCommandModelKey: string | undefined;
   /** Last checkbox state for including note context in quick command */
@@ -510,6 +514,23 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
     sanitizedSettings.autonomousAgentMaxIterations = DEFAULT_SETTINGS.autonomousAgentMaxIterations;
   } else {
     sanitizedSettings.autonomousAgentMaxIterations = autonomousAgentMaxIterations;
+  }
+
+  // Ensure enableKnowledgeAudit is a boolean
+  if (typeof sanitizedSettings.enableKnowledgeAudit !== "boolean") {
+    sanitizedSettings.enableKnowledgeAudit = DEFAULT_SETTINGS.enableKnowledgeAudit;
+  }
+
+  // Ensure knowledgeAuditIntervalDays is a sensible positive integer (1-365 days)
+  const knowledgeAuditIntervalDays = Number(settingsToSanitize.knowledgeAuditIntervalDays);
+  if (
+    isNaN(knowledgeAuditIntervalDays) ||
+    knowledgeAuditIntervalDays < 1 ||
+    knowledgeAuditIntervalDays > 365
+  ) {
+    sanitizedSettings.knowledgeAuditIntervalDays = DEFAULT_SETTINGS.knowledgeAuditIntervalDays;
+  } else {
+    sanitizedSettings.knowledgeAuditIntervalDays = Math.floor(knowledgeAuditIntervalDays);
   }
 
   // Ensure autonomousAgentEnabledToolIds is an array

@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
 import { ensureFolderExists } from "@/utils";
+import { trashFile } from "@/utils/vaultAdapterUtils";
 import { logError, logInfo } from "@/logger";
 import { parseNote, serializeNote } from "@/knowledge/markdownNote";
 import { slugify } from "@/knowledge/slug";
@@ -16,6 +17,8 @@ export interface SkillNote {
   confidence: number;
   source: KnowledgeSource;
   created: string;
+  /** ISO-8601 timestamp of the last knowledge audit, or undefined if never audited. */
+  audited?: string;
   /** Full markdown body (When to Use / Steps / Pitfalls) for full injection. */
   body: string;
 }
@@ -77,6 +80,7 @@ export class SkillStore {
           confidence: typeof fm.confidence === "number" ? fm.confidence : 0,
           source: ((fm.source as string) || "auto") as KnowledgeSource,
           created: String(fm.created ?? ""),
+          audited: fm.audited !== undefined ? String(fm.audited) : undefined,
           body: parsed.body,
         });
       } catch (error) {
@@ -148,6 +152,33 @@ export class SkillStore {
       (s) => `${s.name} ${s.description} ${s.whenToUse} ${s.tags.join(" ")} ${s.body}`,
       k
     );
+  }
+
+  /**
+   * Stamp a skill note with the time it was audited, preserving its body and
+   * other frontmatter. No-op if the note no longer exists.
+   *
+   * @param slug - Basename of the skill note.
+   * @param isoTimestamp - ISO-8601 audit timestamp to record.
+   */
+  async markAudited(slug: string, isoTimestamp: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(`${this.folderPath}/${slug}.md`);
+    if (!(file instanceof TFile)) return;
+    const parsed = parseNote(await this.app.vault.read(file));
+    const frontmatter = { ...parsed.frontmatter, audited: isoTimestamp };
+    await this.app.vault.modify(file, serializeNote(frontmatter, parsed.body));
+  }
+
+  /**
+   * Move a skill note to the trash (recoverable). No-op if it does not exist.
+   *
+   * @param slug - Basename of the skill note to remove.
+   */
+  async remove(slug: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(`${this.folderPath}/${slug}.md`);
+    if (!(file instanceof TFile)) return;
+    await trashFile(this.app, file);
+    logInfo("[SkillStore] Removed skill note:", slug);
   }
 
   /** Ensure the slug does not collide with an existing note in the folder. */

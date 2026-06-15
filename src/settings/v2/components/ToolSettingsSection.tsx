@@ -1,6 +1,6 @@
 import React from "react";
 import { SettingItem } from "@/components/ui/setting-item";
-import { AGENT_MAX_ITERATIONS_LIMIT } from "@/constants";
+import { AGENT_MAX_ITERATIONS_LIMIT, DEFAULT_SETTINGS } from "@/constants";
 import { updateSetting, useSettingsValue } from "@/settings/model";
 import { ToolDefinition } from "@/tools/ToolRegistry";
 import { ToolRegistry } from "@/tools/ToolRegistry";
@@ -101,12 +101,15 @@ export const ToolSettingsSection: React.FC = () => {
   };
 
   return (
-    <>
+    <section className="tw-space-y-4">
+      <div className="tw-text-xl tw-font-bold">Agent</div>
       <SettingItem
         type="slider"
         title="Max Iterations"
-        description="Maximum number of reasoning iterations the autonomous agent can perform. Higher values allow for more complex reasoning but may take longer."
-        value={settings.autonomousAgentMaxIterations ?? 4}
+        description="Maximum number of tool-call rounds the autonomous agent can perform before stopping. Higher values allow more complex, multi-step tasks (e.g. bulk vault restructuring) but may take longer."
+        value={
+          settings.autonomousAgentMaxIterations ?? DEFAULT_SETTINGS.autonomousAgentMaxIterations
+        }
         onChange={(value) => {
           updateSetting("autonomousAgentMaxIterations", value);
         }}
@@ -115,7 +118,7 @@ export const ToolSettingsSection: React.FC = () => {
         step={1}
       />
 
-      <div className="tw-mt-4 tw-rounded-lg tw-bg-secondary tw-p-4">
+      <div className="tw-rounded-lg tw-bg-secondary tw-p-4">
         <div className="tw-mb-2 tw-text-sm tw-font-medium">Agent Accessible Tools</div>
         <div className="tw-mb-4 tw-text-xs tw-text-muted">
           Toggle which tools the autonomous agent can use
@@ -123,6 +126,27 @@ export const ToolSettingsSection: React.FC = () => {
 
         <div className="tw-flex tw-flex-col tw-gap-2">{renderToolsByCategory()}</div>
       </div>
-    </>
+
+      <SettingItem
+        type="switch"
+        title="Periodic Knowledge Audit"
+        description="Periodically review learned memories and skills, pruning stale, low-value, or duplicate ones. Runs in the background at launch; removed notes go to your trash (recoverable) and are recorded in a Knowledge Audit Log note."
+        checked={settings.enableKnowledgeAudit}
+        onCheckedChange={(checked) => updateSetting("enableKnowledgeAudit", checked)}
+      />
+
+      {settings.enableKnowledgeAudit && (
+        <SettingItem
+          type="slider"
+          title="Audit Interval (days)"
+          description="How often each memory/skill is re-reviewed. Each entry is audited at most once per this many days."
+          value={settings.knowledgeAuditIntervalDays ?? DEFAULT_SETTINGS.knowledgeAuditIntervalDays}
+          onChange={(value) => updateSetting("knowledgeAuditIntervalDays", value)}
+          min={1}
+          max={30}
+          step={1}
+        />
+      )}
+    </section>
   );
 };
