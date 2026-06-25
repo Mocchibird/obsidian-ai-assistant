@@ -29,6 +29,7 @@ import { AppContext, EventTargetContext } from "@/context";
 import { ChatInputProvider, useChatInput } from "@/context/ChatInputContext";
 import { useChatManager } from "@/hooks/useChatManager";
 import { useChatFileDrop } from "@/hooks/useChatFileDrop";
+import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { getAIResponse } from "@/langchainStream";
 import ChainManager from "@/LLMProviders/chainManager";
 import { clearRecordedPromptPayload } from "@/LLMProviders/chainRunner/utils/promptPayloadRecorder";
@@ -250,6 +251,9 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
     setSelectedImages((prev) => appendUniqueFiles(prev, files));
   }, []);
 
+  // Handler for uploading PDF/Word/Excel documents into chat context.
+  const handleAddDocuments = useDocumentUpload({ app, setContextNotes });
+
   // Drag-and-drop hook for file handling
   const { isDragActive } = useChatFileDrop({
     app,
@@ -257,6 +261,7 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
     setContextNotes,
     selectedImages,
     onAddImage: handleAddImage,
+    onAddDocuments: handleAddDocuments,
     containerRef: chatContainerRef,
   });
 
@@ -897,6 +902,7 @@ const ChatInternal: React.FC<ChatProps & { chatInput: ReturnType<typeof useChatI
               activeWebTab={currentActiveWebTab}
               selectedImages={selectedImages}
               onAddImage={handleAddImage}
+              onAddDocuments={handleAddDocuments}
               setSelectedImages={setSelectedImages}
               disableModelSwitch={selectedChain === ChainType.PROJECT_CHAIN}
               selectedTextContexts={selectedTextContexts}

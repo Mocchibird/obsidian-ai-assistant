@@ -9,11 +9,19 @@ import { saveConvertedDocOutput as saveConvertedDocOutputCore } from "@/utils/co
 import { extractRetryTime, isRateLimitError } from "@/utils/rateLimitUtils";
 import { Notice, TFile, Vault } from "obsidian";
 import { CanvasLoader } from "./CanvasLoader";
+import { extractDocxText, extractPdfText, extractXlsxText } from "./localDocParsers";
 
 interface FileParser {
   supportedExtensions: string[];
   parseFile: (file: TFile, vault: Vault) => Promise<string>;
 }
+
+/**
+ * Minimum number of extracted characters before we trust a local parse. Below
+ * this we treat the document as having no usable text layer (e.g. a scanned PDF)
+ * and fall back to other strategies / report failure.
+ */
+const MIN_EXTRACTED_TEXT_CHARS = 16;
 
 /**
  * Thin wrapper that reads the output folder from settings and delegates to the pure function.
@@ -105,6 +113,24 @@ class PDFParser implements FileParser {
         return cachedResponse.response;
       }
 
+      // Try local, on-device text extraction first — no remote service needed.
+      // Falls through to Miyo/error only when the PDF has little/no text layer
+      // (e.g. a scanned PDF), which the remote parser may still OCR.
+      try {
+        const data = await vault.readBinary(file);
+        const localText = await extractPdfText(new Uint8Array(data));
+        if (localText.trim().length >= MIN_EXTRACTED_TEXT_CHARS) {
+          await this.pdfCache.set(file, { response: localText, elapsed_time_ms: 0 });
+          await saveConvertedDocOutput(file, localText, vault);
+          return localText;
+        }
+        logInfo(
+          `[PDFParser] Local extraction found little text for ${file.path}; trying fallbacks.`
+        );
+      } catch (error) {
+        logWarn(`[PDFParser] Local PDF extraction failed for ${file.path}:`, error);
+      }
+
       const settings = getSettings();
       if (settings.enableMiyo && file.extension.toLowerCase() === "pdf") {
         const miyoResult = await this.selfHostPdfParser.parsePdf(file, vault);
@@ -161,6 +187,53 @@ class CanvasParser implements FileParser {
     } catch (error) {
       logError(`Error parsing Canvas file ${file.path}:`, error);
       return `[Error: Could not parse Canvas file ${file.basename}]`;
+    }
+  }
+}
+
+/**
+ * Local Word (.docx) parser — extracts plain text on-device via mammoth.
+ * Registered in non-project mode so uploaded/attached Word docs work without a
+ * remote document-processing service.
+ */
+class LocalDocxParser implements FileParser {
+  supportedExtensions = ["docx"];
+
+  async parseFile(file: TFile, vault: Vault): Promise<string> {
+    try {
+      logInfo("Parsing DOCX file:", file.path);
+      const data = await vault.readBinary(file);
+      const text = await extractDocxText(data);
+      if (text.trim().length === 0) {
+        return `[Error: No extractable text found in ${file.basename}]`;
+      }
+      return text;
+    } catch (error) {
+      logError(`Error extracting content from DOCX ${file.path}:`, error);
+      return `[Error: Could not extract content from ${file.basename}]`;
+    }
+  }
+}
+
+/**
+ * Local spreadsheet (.xlsx/.xls) parser — extracts each sheet as CSV on-device
+ * via SheetJS. Registered in non-project mode.
+ */
+class LocalXlsxParser implements FileParser {
+  supportedExtensions = ["xlsx", "xls"];
+
+  async parseFile(file: TFile, vault: Vault): Promise<string> {
+    try {
+      logInfo("Parsing spreadsheet file:", file.path);
+      const data = await vault.readBinary(file);
+      const text = extractXlsxText(new Uint8Array(data));
+      if (text.trim().length === 0) {
+        return `[Error: No extractable text found in ${file.basename}]`;
+      }
+      return text;
+    } catch (error) {
+      logError(`Error extracting content from spreadsheet ${file.path}:`, error);
+      return `[Error: Could not extract content from ${file.basename}]`;
     }
   }
 }
@@ -457,6 +530,13 @@ export class FileParserManager {
     // Only register PDFParser when not in project mode
     if (!isProjectMode) {
       this.registerParser(new PDFParser());
+
+      // Local document parsers override Docs4LLMParser for these types in
+      // non-project mode, enabling on-device parsing without a remote service.
+      if (getSettings().enableDocumentUpload) {
+        this.registerParser(new LocalDocxParser());
+        this.registerParser(new LocalXlsxParser());
+      }
     }
 
     this.registerParser(new CanvasParser());

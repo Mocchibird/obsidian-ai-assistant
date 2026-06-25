@@ -20,7 +20,7 @@ import { useSettingsValue } from "@/settings/model";
 import { SelectedTextContext, WebTabContext } from "@/types/message";
 import { isAllowedFileForNoteContext } from "@/utils";
 import { getFileIdentityKey } from "@/utils/fileListUtils";
-import { CornerDownLeft, Image, Loader2, StopCircle, X } from "lucide-react";
+import { CornerDownLeft, Image, Loader2, Paperclip, StopCircle, X } from "lucide-react";
 import { App, Notice, TFile, TFolder } from "obsidian";
 import React, {
   useCallback,
@@ -63,6 +63,7 @@ interface ChatInputProps {
   activeWebTab: WebTabContext | null;
   selectedImages: File[];
   onAddImage: (files: File[]) => void;
+  onAddDocuments: (files: File[]) => void;
   setSelectedImages: React.Dispatch<React.SetStateAction<File[]>>;
   disableModelSwitch?: boolean;
   selectedTextContexts?: SelectedTextContext[];
@@ -104,6 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   activeWebTab,
   selectedImages,
   onAddImage,
+  onAddDocuments,
   setSelectedImages,
   disableModelSwitch,
   selectedTextContexts,
@@ -851,6 +853,34 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="tw-px-1 tw-py-0.5">Add image(s)</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost2"
+                      size="fit"
+                      className="tw-text-muted hover:tw-text-accent"
+                      onClick={(e) => {
+                        const input = e.currentTarget.doc.createElement("input");
+                        input.type = "file";
+                        input.accept = ".pdf,.docx,.xlsx,.xls";
+                        input.multiple = true;
+                        input.addEventListener(
+                          "change",
+                          () => onAddDocuments(Array.from(input.files || [])),
+                          { once: true }
+                        );
+                        input.click();
+                      }}
+                    >
+                      <Paperclip className="tw-size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="tw-px-1 tw-py-0.5">
+                    Add document (PDF, Word, Excel)
+                  </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               {editMode && onEditCancel && (

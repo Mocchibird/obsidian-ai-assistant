@@ -401,3 +401,28 @@ describe("normalizeModelProvider", () => {
     expect(normalizeModelProvider("")).toBe("");
   });
 });
+
+describe("sanitizeSettings - document upload", () => {
+  it("defaults enableDocumentUpload when missing", () => {
+    const settings = { ...DEFAULT_SETTINGS } as Partial<CopilotSettings>;
+    delete settings.enableDocumentUpload;
+    const sanitized = sanitizeSettings(settings as CopilotSettings);
+    expect(sanitized.enableDocumentUpload).toBe(DEFAULT_SETTINGS.enableDocumentUpload);
+  });
+
+  it("defaults documentUploadFolder when blank", () => {
+    const sanitized = sanitizeSettings({
+      ...DEFAULT_SETTINGS,
+      documentUploadFolder: "   ",
+    });
+    expect(sanitized.documentUploadFolder).toBe(DEFAULT_SETTINGS.documentUploadFolder);
+  });
+
+  it("preserves a custom documentUploadFolder", () => {
+    const sanitized = sanitizeSettings({
+      ...DEFAULT_SETTINGS,
+      documentUploadFolder: "Attachments/Docs",
+    });
+    expect(sanitized.documentUploadFolder).toBe("Attachments/Docs");
+  });
+});

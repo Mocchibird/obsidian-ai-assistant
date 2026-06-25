@@ -154,6 +154,11 @@ export function shouldIndexFile(
   if (isInternalExcludedFile(file)) {
     return false;
   }
+  // Uploaded documents live under the force-excluded copilot/ root but are
+  // explicit user context, so allow them through before exclusions apply.
+  if (isUnderDocumentUploadFolder(file.path)) {
+    return true;
+  }
   if (exclusions && matchFilePathWithPatterns(file.path, exclusions)) {
     return false;
   }
@@ -438,4 +443,25 @@ function isInternalExcludedPath(filePath: string): boolean {
  */
 export function isInternalExcludedFile(file: TFile): boolean {
   return isInternalExcludedPath(file.path);
+}
+
+/**
+ * Whether a file lives under the configured document-upload folder.
+ *
+ * Uploaded documents and their extracted-text sidecars live under the
+ * `copilot/` root, which `sanitizeQaExclusions` force-excludes from search.
+ * They are explicitly user-provided context, so they must stay searchable —
+ * `shouldIndexFile` allows this folder through before applying exclusions.
+ *
+ * @param filePath - Full vault-relative path to the file.
+ */
+export function isUnderDocumentUploadFolder(filePath: string): boolean {
+  const settings = getSettings();
+  if (!settings.enableDocumentUpload) return false;
+  const normalized = (settings.documentUploadFolder || "")
+    .replace(/\\/g, "/")
+    .replace(/\/+/g, "/")
+    .replace(/\/+$/, "");
+  if (!normalized) return false;
+  return filePath.startsWith(`${normalized}/`);
 }

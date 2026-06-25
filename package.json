@@ -112,14 +112,17 @@
     "lexical": "^0.34.0",
     "lucide-react": "^0.462.0",
     "luxon": "^3.5.0",
+    "mammoth": "^1.12.0",
     "minisearch": "^7.2.0",
     "openai": "^6.10.0",
+    "pdfjs-dist": "^6.0.227",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-resizable-panels": "^3.0.2",
     "tailwind-merge": "^2.5.5",
     "turndown": "^7.2.2",
     "uuid": "^11.1.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   }
 }

@@ -4,6 +4,7 @@ import ChatInput from "./ChatInput";
 import { ChatMessage } from "@/types/message";
 import { useActiveWebTabState } from "./hooks/useActiveWebTabState";
 import { appendUniqueFiles } from "@/utils/fileListUtils";
+import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 
 interface InlineMessageEditorProps {
   /** The initial message text to edit */
@@ -86,6 +87,8 @@ export const InlineMessageEditor: React.FC<InlineMessageEditorProps> = ({
     setSelectedImages((prev) => appendUniqueFiles(prev, files));
   }, []);
 
+  const handleAddDocuments = useDocumentUpload({ app, setContextNotes });
+
   const handleRemoveSelectedText = useCallback((id: string) => {
     // Handle selected text removal if needed
   }, []);
@@ -119,6 +122,7 @@ export const InlineMessageEditor: React.FC<InlineMessageEditorProps> = ({
       activeWebTab={currentActiveWebTab}
       selectedImages={selectedImages}
       onAddImage={handleAddImage}
+      onAddDocuments={handleAddDocuments}
       setSelectedImages={setSelectedImages}
       disableModelSwitch={false}
       selectedTextContexts={initialContext?.selectedTextContexts}

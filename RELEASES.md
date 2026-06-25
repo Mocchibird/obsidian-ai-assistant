@@ -1,5 +1,21 @@
 # Release Notes
 
+# Copilot for Obsidian - Release v4.2.0 📄
+
+This release lets you drop documents straight into chat. Upload a **PDF, Word (.docx), or Excel (.xlsx)** file and ask questions about it — parsed entirely on your device, no external service required.
+
+- 📎 **Upload documents to chat** — Click the paperclip in the chat input, or drag a file in, to attach a PDF, Word, or Excel document. Copilot extracts its text **locally** (bundled pdf.js / mammoth / SheetJS — nothing leaves your machine), attaches it as context for your question, and saves the original to an upload folder for future reference.
+- 🔎 **Uploaded documents are searchable later** — The extracted text is saved as a markdown note alongside the original, so a later `@vault` search or Vault QA question can surface the document's content even after the chat ends. Copilot only reads your files — it never modifies the originals.
+- 🧩 **Local PDF/Word/Excel parsing everywhere** — PDFs attached as context now extract on-device first (previously this required the optional self-host service), and Word/Excel files are supported locally for the first time.
+- ⚙️ **New settings** — Toggle the feature and choose where uploads are stored under **Settings → Copilot → Basic → Document Upload** (defaults to `copilot/files`, which is made searchable automatically).
+
+## Troubleshoot
+
+- Scanned/image-only PDFs have no text layer to extract (no OCR) — the original is still saved, but there may be no text. Tables and figures come through as plain text only.
+- Very large files are rejected to keep Obsidian responsive.
+
+---
+
 # Copilot for Obsidian - Release v4.1.0 🤖
 
 This release makes the autonomous agent much better at large, multi-step jobs — especially reorganizing your vault — and adds a self-maintaining knowledge base that keeps your learned memories and skills tidy on its own.

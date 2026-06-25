@@ -176,6 +176,10 @@ export interface CopilotSettings {
   enableKnowledgeAudit: boolean;
   /** Re-audit interval in days: each memory/skill is reviewed at most once per this many days */
   knowledgeAuditIntervalDays: number;
+  /** Allow uploading PDF/Word/Excel files into chat for context (parsed locally) */
+  enableDocumentUpload: boolean;
+  /** Vault folder where uploaded documents and their extracted-text sidecars are saved */
+  documentUploadFolder: string;
   /** Last selected model for quick command */
   quickCommandModelKey: string | undefined;
   /** Last checkbox state for including note context in quick command */
@@ -519,6 +523,19 @@ export function sanitizeSettings(settings: CopilotSettings): CopilotSettings {
   // Ensure enableKnowledgeAudit is a boolean
   if (typeof sanitizedSettings.enableKnowledgeAudit !== "boolean") {
     sanitizedSettings.enableKnowledgeAudit = DEFAULT_SETTINGS.enableKnowledgeAudit;
+  }
+
+  // Ensure enableDocumentUpload is a boolean
+  if (typeof sanitizedSettings.enableDocumentUpload !== "boolean") {
+    sanitizedSettings.enableDocumentUpload = DEFAULT_SETTINGS.enableDocumentUpload;
+  }
+
+  // Ensure documentUploadFolder is a non-empty string
+  if (
+    typeof sanitizedSettings.documentUploadFolder !== "string" ||
+    sanitizedSettings.documentUploadFolder.trim().length === 0
+  ) {
+    sanitizedSettings.documentUploadFolder = DEFAULT_SETTINGS.documentUploadFolder;
   }
 
   // Ensure knowledgeAuditIntervalDays is a sensible positive integer (1-365 days)

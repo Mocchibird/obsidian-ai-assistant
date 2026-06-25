@@ -158,6 +158,43 @@ describe("searchUtils", () => {
       expect(shouldIndexFile(file, null, exclusions)).toBe(false);
     });
 
+    describe("document upload folder un-exclusion", () => {
+      const copilotExclusion = { folderPatterns: ["copilot"] };
+
+      it("indexes files under the upload folder despite the copilot exclusion", () => {
+        (settingsModel.getSettings as jest.Mock).mockReturnValue({
+          qaInclusions: "",
+          qaExclusions: "copilot",
+          enableDocumentUpload: true,
+          documentUploadFolder: "copilot/files",
+        });
+        const file = createTestFile("copilot/files/report.md");
+        expect(shouldIndexFile(file, null, copilotExclusion)).toBe(true);
+      });
+
+      it("still excludes other copilot files", () => {
+        (settingsModel.getSettings as jest.Mock).mockReturnValue({
+          qaInclusions: "",
+          qaExclusions: "copilot",
+          enableDocumentUpload: true,
+          documentUploadFolder: "copilot/files",
+        });
+        const file = createTestFile("copilot/memory/fact.md");
+        expect(shouldIndexFile(file, null, copilotExclusion)).toBe(false);
+      });
+
+      it("does not un-exclude when document upload is disabled", () => {
+        (settingsModel.getSettings as jest.Mock).mockReturnValue({
+          qaInclusions: "",
+          qaExclusions: "copilot",
+          enableDocumentUpload: false,
+          documentUploadFolder: "copilot/files",
+        });
+        const file = createTestFile("copilot/files/report.md");
+        expect(shouldIndexFile(file, null, copilotExclusion)).toBe(false);
+      });
+    });
+
     it("should handle tag-based inclusion patterns", () => {
       const file = createTestFile("notes/tagged.md");
       mockGetAbstractFileByPath.mockReturnValue(file);

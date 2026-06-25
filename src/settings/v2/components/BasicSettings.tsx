@@ -321,6 +321,25 @@ export const BasicSettings: React.FC = () => {
           />
 
           <SettingItem
+            type="switch"
+            title="Document Upload"
+            description="Allow uploading PDF, Word, and Excel files into chat for context. Files are parsed on-device, saved to the upload folder, and made searchable."
+            checked={settings.enableDocumentUpload}
+            onCheckedChange={(checked) => updateSetting("enableDocumentUpload", checked)}
+          />
+
+          {settings.enableDocumentUpload && (
+            <SettingItem
+              type="text"
+              title="Document Upload Folder"
+              description="Folder where uploaded documents and their extracted-text notes are saved. Default is 'copilot/files'"
+              value={settings.documentUploadFolder}
+              onChange={(value) => updateSetting("documentUploadFolder", value)}
+              placeholder="copilot/files"
+            />
+          )}
+
+          <SettingItem
             type="custom"
             title="Conversation Filename Template"
             description={

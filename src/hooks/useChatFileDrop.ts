@@ -1,6 +1,12 @@
 import { isAllowedFileForNoteContext } from "@/utils";
+import { isSupportedDocument } from "@/utils/documentUpload";
 import { App, Notice, TFile } from "obsidian";
 import { RefObject, useEffect, useState } from "react";
+
+/** Whether a dropped external file is a supported upload document (by MIME or extension). */
+function isSupportedDocumentDrop(file: File): boolean {
+  return isSupportedDocument(file.name);
+}
 
 /**
  * Props for the useChatFileDrop hook
@@ -16,6 +22,8 @@ export interface UseChatFileDropProps {
   selectedImages: File[];
   /** Callback to add images */
   onAddImage: (files: File[]) => void;
+  /** Callback to add uploaded documents (PDF/Word/Excel) */
+  onAddDocuments: (files: File[]) => void;
   /** Reference to the container element for drag-and-drop */
   containerRef: RefObject<HTMLElement>;
 }
@@ -89,7 +97,15 @@ function parseObsidianUris(app: App, uriString: string): TFile[] {
  * @returns Object containing drag state
  */
 export function useChatFileDrop(props: UseChatFileDropProps): UseChatFileDropReturn {
-  const { app, contextNotes, setContextNotes, selectedImages, onAddImage, containerRef } = props;
+  const {
+    app,
+    contextNotes,
+    setContextNotes,
+    selectedImages,
+    onAddImage,
+    onAddDocuments,
+    containerRef,
+  } = props;
   const [isDragActive, setIsDragActive] = useState(false);
 
   useEffect(() => {
@@ -225,18 +241,25 @@ export function useChatFileDrop(props: UseChatFileDropProps): UseChatFileDropRet
           }
         }
       } else if (fileItems.length > 0) {
-        // Process external file drops (images only)
-        const files: File[] = [];
+        // Process external file drops: images and documents (PDF/Word/Excel).
+        const images: File[] = [];
+        const documents: File[] = [];
 
         for (const item of fileItems) {
           const file = item.getAsFile();
-          if (file && file.type.startsWith("image/")) {
-            files.push(file);
+          if (!file) continue;
+          if (file.type.startsWith("image/")) {
+            images.push(file);
+          } else if (isSupportedDocumentDrop(file)) {
+            documents.push(file);
           }
         }
 
-        if (files.length > 0) {
-          onAddImage(files);
+        if (images.length > 0) {
+          onAddImage(images);
+        }
+        if (documents.length > 0) {
+          onAddDocuments(documents);
         }
       }
     };
@@ -256,7 +279,15 @@ export function useChatFileDrop(props: UseChatFileDropProps): UseChatFileDropRet
       container.removeEventListener("dragleave", handleDragLeave);
       container.removeEventListener("drop", handleDropEvent);
     };
-  }, [app, contextNotes, selectedImages, onAddImage, setContextNotes, containerRef]);
+  }, [
+    app,
+    contextNotes,
+    selectedImages,
+    onAddImage,
+    onAddDocuments,
+    setContextNotes,
+    containerRef,
+  ]);
 
   return { isDragActive };
 }

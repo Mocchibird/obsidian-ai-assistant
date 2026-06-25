@@ -116,6 +116,20 @@ Click the **+ Add context** button above the chat input to attach a PDF file. Th
 
 Drag an image directly into the chat input box, or click the **image button** in the bottom-right corner of the chat input. The image is sent to the AI if your selected model supports **Vision** capability.
 
+### Uploading a Document (PDF / Word / Excel)
+
+Click the **paperclip button** in the bottom-right corner of the chat input — or drag a file directly into the chat — to upload a **PDF, Word (.docx), or Excel (.xlsx)** document. Copilot:
+
+1. Saves the original file into your **upload folder** (`copilot/files` by default) for future reference.
+2. Extracts its text **on your device** (nothing is sent to any external service) and saves that text as a markdown note next to the original.
+3. Attaches the extracted text as context for your current message, so you can immediately ask questions about the document.
+
+Because the extracted text is saved as a normal note, it also becomes **searchable** later — a future `@vault` search or Vault QA question can surface the document's content even after the chat ends. Copilot only reads these files; it never modifies your original documents.
+
+- **Turn it on/off**: **Settings → Copilot → Basic → Document Upload**.
+- **Change where files are stored**: **Settings → Copilot → Basic → Document Upload Folder**.
+- **Notes**: scanned/image-only PDFs may yield little text (no text layer to extract); very large files are rejected to keep things responsive.
+
 ---
 
 ## Context Indicators
@@ -135,6 +149,7 @@ When context items are added to your message, Copilot shows small pills or badge
 | @vault search   | Yes (explicit) | Auto         | Auto         |
 | @websearch      | No             | No           | Yes          |
 | Images (vision) | Yes            | Yes          | Yes          |
+| Document upload | Yes            | Yes          | Yes          |
 | Active web tab  | Desktop only   | Desktop only | Desktop only |
 
 ---

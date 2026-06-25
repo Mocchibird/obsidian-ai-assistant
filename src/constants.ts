@@ -14,6 +14,7 @@ const DEFAULT_CHAT_HISTORY_FOLDER = `${COPILOT_FOLDER_ROOT}/copilot-conversation
 const DEFAULT_CUSTOM_PROMPTS_FOLDER = `${COPILOT_FOLDER_ROOT}/copilot-custom-prompts`;
 const DEFAULT_MEMORY_FOLDER = `${COPILOT_FOLDER_ROOT}/memory`;
 const DEFAULT_SKILLS_FOLDER = `${COPILOT_FOLDER_ROOT}/skills`;
+const DEFAULT_DOCUMENT_UPLOAD_FOLDER = `${COPILOT_FOLDER_ROOT}/files`;
 const DEFAULT_SYSTEM_PROMPTS_FOLDER = `${COPILOT_FOLDER_ROOT}/system-prompts`;
 const DEFAULT_PROJECTS_FOLDER = `${COPILOT_FOLDER_ROOT}/projects`;
 const DEFAULT_CONVERTED_DOC_OUTPUT_FOLDER = "";
@@ -915,6 +916,8 @@ export const DEFAULT_SETTINGS: CopilotSettings = {
   skillsFolder: DEFAULT_SKILLS_FOLDER,
   enableKnowledgeAudit: true,
   knowledgeAuditIntervalDays: 7,
+  enableDocumentUpload: true,
+  documentUploadFolder: DEFAULT_DOCUMENT_UPLOAD_FOLDER,
   quickCommandModelKey: undefined,
   quickCommandIncludeNoteContext: true,
   autoIncludeTextSelection: false,
